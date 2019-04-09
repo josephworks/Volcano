@@ -1,4 +1,4 @@
-From 7b234ec70b731489dc14d6cc806a8de02fa78b42 Mon Sep 17 00:00:00 2001
+From ed113898c9732c156d537011484696c4b4b9f11a Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Mon, 8 Apr 2019 21:26:04 -0400
 Subject: [PATCH] POM Changes
@@ -9,7 +9,7 @@ Subject: [PATCH] POM Changes
  2 files changed, 38 insertions(+), 14 deletions(-)
 
 diff --git a/pom.xml b/pom.xml
-index c3844581..40d5de48 100644
+index c3844581..98e94069 100644
 --- a/pom.xml
 +++ b/pom.xml
 @@ -1,12 +1,7 @@
@@ -59,7 +59,7 @@ index c3844581..40d5de48 100644
 +        <dependency>
 +            <groupId>com.zaxxer</groupId>
 +            <artifactId>HikariCP</artifactId>
-+            <version>2.4.1</version>
++            <version>3.3.1</version>
 +            <scope>compile</scope>
 +        </dependency>
 +        <!-- json-smart -->
@@ -73,12 +73,12 @@ index c3844581..40d5de48 100644
 +        <dependency>
 +            <groupId>biz.paluch.redis</groupId>
 +            <artifactId>lettuce</artifactId>
-+            <version>4.0.Final</version>
++            <version>5.0.0.Beta1</version>
 +        </dependency>
 +        <dependency>
 +            <groupId>org.json</groupId>
 +            <artifactId>json</artifactId>
-+            <version>20090211</version>
++            <version>20180813</version>
 +        </dependency>
          <dependency>
              <groupId>org.xerial</groupId>

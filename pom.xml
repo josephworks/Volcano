@@ -1,14 +1,13 @@
 <project>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.empireminecraft</groupId>
-    <artifactId>empirecraft-parent</artifactId>
-    <version>dev-1.12-R0.1-SNAPSHOT</version>
+    <groupId>org.lavapowered.volcano</groupId>
+    <artifactId>volcano-parent</artifactId>
+    <version>dev-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>EmpireCraft (Parent)</name>
+    <name>Volcano (Parent)</name>
 
     <properties>
-        <repo>http://empireminecraft.com/nexus/content/repositories/empireminecraft</repo>
         <skipTests>true</skipTests>
     </properties>
 
@@ -27,8 +26,9 @@
         <defaultGoal>install</defaultGoal>
         <finalName>${project.artifactId}</finalName>
     </build>
+
     <modules>
-        <module>EmpireCraft-API</module>
-        <module>EmpireCraft-Server</module>
+        <module>Volcano-API</module>
+        <module>Volcano-Server</module>
     </modules>
 </project>
