@@ -1,0 +1,25 @@
+From d75f7cc59e8375c80951e54505ccddaf120d93d2 Mon Sep 17 00:00:00 2001
+From: GMatrixGames <gmatrixgames@hotmail.com>
+Date: Thu, 11 Apr 2019 17:29:44 -0400
+Subject: [PATCH] Rebrand
+
+---
+ src/main/java/org/bukkit/craftbukkit/util/Versioning.java | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
+index 674096ca..31a0132a 100644
+--- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
++++ b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
+@@ -11,7 +11,7 @@ public final class Versioning {
+     public static String getBukkitVersion() {
+         String result = "Unknown-Version";
+ 
+-        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/com.destroystokyo.paper/paper-api/pom.properties");
++        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/org.lavapowered.volcano/volcano-api/pom.properties");
+         Properties properties = new Properties();
+ 
+         if (stream != null) {
+-- 
+2.21.0.windows.1
+
