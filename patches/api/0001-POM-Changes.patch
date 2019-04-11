@@ -1,45 +1,42 @@
-From a6809047467abb39655b81aa929710900536eab7 Mon Sep 17 00:00:00 2001
+From e9ea6c5b662b2cb4044f3cc79ec857d1c6e6e6ef Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
-Date: Mon, 8 Apr 2019 21:32:12 -0400
+Date: Thu, 11 Apr 2019 16:17:10 -0400
 Subject: [PATCH] POM Changes
 
 ---
- pom.xml | 17 +++++++----------
- 1 file changed, 7 insertions(+), 10 deletions(-)
+ pom.xml | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
 
 diff --git a/pom.xml b/pom.xml
-index 3347be41..d158340e 100644
+index 13cdc25f..65749abc 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -1,21 +1,18 @@
+@@ -1,20 +1,19 @@
 -
  <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
      <modelVersion>4.0.0</modelVersion>
--
-+	
+ 
      <parent>
 -        <groupId>com.destroystokyo.paper</groupId>
 -        <artifactId>paper-parent</artifactId>
 +        <groupId>org.lavapowered.volcano</groupId>
 +        <artifactId>volcano-parent</artifactId>
          <version>dev-SNAPSHOT</version>
-+        <relativePath>../pom.xml</relativePath>
      </parent>
  
 -    <artifactId>paper-api</artifactId>
 +    <artifactId>volcano-api</artifactId>
      <version>1.13.2-R0.1-SNAPSHOT</version>
--    <packaging>jar</packaging>
--
+     <packaging>jar</packaging>
+ 
 -    <name>Paper-API</name>
 -    <url>https://github.com/PaperMC/Paper</url>
--    <description>An enhanced plugin API for Minecraft servers.</description>
-+	<description>An enhanced plugin API for Minecraft servers.</description>
 +    <name>Volcano-API</name>
++    <url>https://github.com/LavaPowered/Volcano</url>
+     <description>An enhanced plugin API for Minecraft servers.</description>
  
      <properties>
-         <!-- Paper - #Logic -->
 -- 
 2.21.0.windows.1
 
