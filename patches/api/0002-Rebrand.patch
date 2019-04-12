@@ -1,4 +1,4 @@
-From c35cc079994678c819aa646ed19c0b4eba17f040 Mon Sep 17 00:00:00 2001
+From acbaa273fa41a3e3b00d2f5e0b705239c446132f Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Thu, 11 Apr 2019 17:33:32 -0400
 Subject: [PATCH] Rebrand
@@ -8,7 +8,7 @@ Subject: [PATCH] Rebrand
  1 file changed, 21 insertions(+), 3 deletions(-)
 
 diff --git a/src/main/java/org/bukkit/command/defaults/VersionCommand.java b/src/main/java/org/bukkit/command/defaults/VersionCommand.java
-index ee07fe5e..bc76d56c 100644
+index ee07fe5e..464ade23 100644
 --- a/src/main/java/org/bukkit/command/defaults/VersionCommand.java
 +++ b/src/main/java/org/bukkit/command/defaults/VersionCommand.java
 @@ -214,7 +214,24 @@ public class VersionCommand extends BukkitCommand {
@@ -18,7 +18,7 @@ index ee07fe5e..bc76d56c 100644
 -        if (version.startsWith("git-Paper-")) {
 +		// Volcano start
 +		if (version.startsWith("git-Volcano-")) {
-+			String[] parts = version.substring("git-Volcano-".length()).split("[-\\s");
++			String[] parts = version.substring("git-Volcano-".length()).split("[-\\s]");
 +			int distance = getDistance(null, parts[0]);
 +            switch (distance) {
 +                case -1:
@@ -52,7 +52,7 @@ index ee07fe5e..bc76d56c 100644
              BufferedReader reader = Resources.asCharSource(
 -                    new URL("https://ci.destroystokyo.com/job/Paper-1.13/lastSuccessfulBuild/buildNumber"), // Paper
 +                    // new URL("https://ci.destroystokyo.com/job/Paper-1.13/lastSuccessfulBuild/buildNumber"), // Paper
-+					new URL("https://dev.matrixdevteam.ml/ci/job/Volcano/lastSuccessfulBuild/buildNumber"), // Volcano
++					 new URL("https://dev.matrixdevteam.ml/ci/job/Volcano/lastSuccessfulBuild/buildNumber"), // Volcano
                      Charsets.UTF_8
              ).openBufferedStream();
              try {

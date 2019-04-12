@@ -1,12 +1,26 @@
-From d75f7cc59e8375c80951e54505ccddaf120d93d2 Mon Sep 17 00:00:00 2001
+From 08be3c2df286998c19a33a2f5433466b81eaf31e Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Thu, 11 Apr 2019 17:29:44 -0400
 Subject: [PATCH] Rebrand
 
 ---
+ src/main/java/org/bukkit/craftbukkit/CraftServer.java     | 2 +-
  src/main/java/org/bukkit/craftbukkit/util/Versioning.java | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 9c5b7992..051accfa 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -169,7 +169,7 @@ import javax.annotation.Nonnull; // Paper
+ 
+ 
+ public final class CraftServer implements Server {
+-    private final String serverName = "Paper"; // Paper
++    private final String serverName = "Volcano"; // Volcano
+     private final String serverVersion;
+     private final String bukkitVersion = Versioning.getBukkitVersion();
+     private final Logger logger = Logger.getLogger("Minecraft");
 diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 index 674096ca..31a0132a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
