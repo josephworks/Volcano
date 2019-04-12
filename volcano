@@ -68,6 +68,10 @@ case "$1" in
 	"s" | "server")
 		cd "$basedir/Volcano-Server"
 	;;
+	"j" | "jar")
+		cd "$basedir"
+		scripts/build.sh "$basedir" "--jar"
+	;;
 	"e" | "edit")
         case "$2" in
             "s" | "server")
