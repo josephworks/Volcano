@@ -1,4 +1,4 @@
-From c5b1ff85ae1e5b18d2a2bf89fcab1e7a5781ed5e Mon Sep 17 00:00:00 2001
+From 784aa310ddbb7419538fa3725c86ed268891221f Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Sun, 14 Apr 2019 08:47:25 -0400
 Subject: [PATCH] Add TacoSpigot improvements
@@ -7,7 +7,7 @@ Subject: [PATCH] Add TacoSpigot improvements
  .../java/com/destroystokyo/paper/Metrics.java |   6 +-
  .../com/destroystokyo/paper/PaperConfig.java  |   2 +-
  .../java/net/minecraft/server/BlockState.java |  47 ++++
- .../minecraft/server/BlockStateBoolean.java   |  16 ++
+ .../minecraft/server/BlockStateBoolean.java   |  28 ++-
  .../net/minecraft/server/BlockStateEnum.java  |  17 ++
  .../minecraft/server/BlockStateInteger.java   |  28 +++
  .../net/minecraft/server/BlockStateList.java  | 152 +++++++++++++
@@ -35,7 +35,7 @@ Subject: [PATCH] Add TacoSpigot improvements
  .../craftbukkit/entity/CraftPlayer.java       |   5 +
  src/main/java/org/spigotmc/AsyncCatcher.java  |  32 ++-
  .../tacospigot/ImmutableArrayMapTest.java     | 108 +++++++++
- 31 files changed, 1226 insertions(+), 13 deletions(-)
+ 31 files changed, 1234 insertions(+), 17 deletions(-)
  create mode 100644 src/main/java/net/minecraft/server/BlockStateList.java
  create mode 100644 src/main/java/net/minecraft/server/IBlockState.java
  create mode 100644 src/main/java/net/techcable/tacospigot/ArrayMap.java
@@ -163,10 +163,37 @@ index ea0e0ff4..a5ebca12 100644
  
      public String a() {
 diff --git a/src/main/java/net/minecraft/server/BlockStateBoolean.java b/src/main/java/net/minecraft/server/BlockStateBoolean.java
-index 71d2ad97..1b036500 100644
+index 71d2ad97..17dd790b 100644
 --- a/src/main/java/net/minecraft/server/BlockStateBoolean.java
 +++ b/src/main/java/net/minecraft/server/BlockStateBoolean.java
-@@ -43,4 +43,20 @@ public class BlockStateBoolean extends BlockState<Boolean> {
+@@ -1,6 +1,7 @@
+ package net.minecraft.server;
+ 
+ import com.google.common.collect.ImmutableSet;
++
+ import java.util.Collection;
+ import java.util.Optional;
+ 
+@@ -12,14 +13,14 @@ public class BlockStateBoolean extends BlockState<Boolean> {
+         super(s, Boolean.class);
+     }
+ 
+-    public Collection<Boolean> d() {
+-        return this.a;
+-    }
+-
+     public static BlockStateBoolean of(String s) {
+         return new BlockStateBoolean(s);
+     }
+ 
++    public Collection<Boolean> d() {
++        return this.a;
++    }
++
+     public Optional<Boolean> b(String s) {
+         return !"true".equals(s) && !"false".equals(s) ? Optional.empty() : Optional.of(Boolean.valueOf(s));
+     }
+@@ -43,4 +44,23 @@ public class BlockStateBoolean extends BlockState<Boolean> {
      public int c() {
          return 31 * super.c() + this.a.hashCode();
      }
@@ -179,11 +206,14 @@ index 71d2ad97..1b036500 100644
 +
 +    @Override
 +    public Boolean getByValueId(int id) {
-+        return switch (id) {
-+            case 0 -> false;
-+            case 1 -> true;
-+            default -> throw new IllegalArgumentException("Invalid id: " + id);
-+        };
++        switch (id) {
++            case 0:
++                return false;
++            case 1:
++                return true;
++            default:
++                throw new IllegalArgumentException("Invalid id: " + id);
++        }
 +    }
 +    // TacoSpigot end
  }
