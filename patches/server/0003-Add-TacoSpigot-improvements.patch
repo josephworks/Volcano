@@ -1,0 +1,1688 @@
+From c5b1ff85ae1e5b18d2a2bf89fcab1e7a5781ed5e Mon Sep 17 00:00:00 2001
+From: GMatrixGames <gmatrixgames@hotmail.com>
+Date: Sun, 14 Apr 2019 08:47:25 -0400
+Subject: [PATCH] Add TacoSpigot improvements
+
+---
+ .../java/com/destroystokyo/paper/Metrics.java |   6 +-
+ .../com/destroystokyo/paper/PaperConfig.java  |   2 +-
+ .../java/net/minecraft/server/BlockState.java |  47 ++++
+ .../minecraft/server/BlockStateBoolean.java   |  16 ++
+ .../net/minecraft/server/BlockStateEnum.java  |  17 ++
+ .../minecraft/server/BlockStateInteger.java   |  28 +++
+ .../net/minecraft/server/BlockStateList.java  | 152 +++++++++++++
+ src/main/java/net/minecraft/server/EULA.java  |   2 +-
+ .../net/minecraft/server/EntityArrow.java     |  12 +
+ .../net/minecraft/server/EntityHuman.java     |  21 +-
+ .../net/minecraft/server/IBlockState.java     |  25 +++
+ .../net/minecraft/server/MinecraftServer.java |   2 +-
+ .../net/minecraft/server/PlayerChunkMap.java  |  15 +-
+ .../minecraft/server/PlayerConnection.java    |   2 +
+ src/main/java/net/minecraft/server/World.java |   2 +
+ .../net/techcable/tacospigot/ArrayMap.java    | 211 ++++++++++++++++++
+ .../tacospigot/ImmutableArrayMap.java         | 138 ++++++++++++
+ .../tacospigot/ImmutableArrayTable.java       |  36 +++
+ .../net/techcable/tacospigot/NoOpLock.java    |  40 ++++
+ .../tacospigot/NoOpReadWriteLock.java         |  25 +++
+ .../net/techcable/tacospigot/SimpleMap.java   |  10 +
+ .../net/techcable/tacospigot/SimpleTable.java |  10 +
+ .../tacospigot/TacoSpigotConfig.java          | 120 ++++++++++
+ .../tacospigot/TacoSpigotWorldConfig.java     |  66 ++++++
+ .../tacospigot/function/FunctionalMaps.java   |  28 +++
+ .../tacospigot/function/ObjIntBiFunction.java |   6 +
+ .../org/bukkit/craftbukkit/CraftServer.java   |   2 +
+ .../java/org/bukkit/craftbukkit/Main.java     |  53 +++++
+ .../craftbukkit/entity/CraftPlayer.java       |   5 +
+ src/main/java/org/spigotmc/AsyncCatcher.java  |  32 ++-
+ .../tacospigot/ImmutableArrayMapTest.java     | 108 +++++++++
+ 31 files changed, 1226 insertions(+), 13 deletions(-)
+ create mode 100644 src/main/java/net/minecraft/server/BlockStateList.java
+ create mode 100644 src/main/java/net/minecraft/server/IBlockState.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/ArrayMap.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/ImmutableArrayMap.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/ImmutableArrayTable.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/NoOpLock.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/NoOpReadWriteLock.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/SimpleMap.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/SimpleTable.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/TacoSpigotConfig.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/TacoSpigotWorldConfig.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/function/FunctionalMaps.java
+ create mode 100644 src/main/java/net/techcable/tacospigot/function/ObjIntBiFunction.java
+ create mode 100644 src/test/java/net/techcable/tacospigot/ImmutableArrayMapTest.java
+
+diff --git a/src/main/java/com/destroystokyo/paper/Metrics.java b/src/main/java/com/destroystokyo/paper/Metrics.java
+index e257d6b3..fd64848b 100644
+--- a/src/main/java/com/destroystokyo/paper/Metrics.java
++++ b/src/main/java/com/destroystokyo/paper/Metrics.java
+@@ -545,7 +545,7 @@ public class Metrics {
+ 
+     }
+ 
+-    static class PaperMetrics {
++    static class VolcanoMetrics {
+         static void startMetrics() {
+             // Get the config file
+             File configFile = new File(new File((File) MinecraftServer.getServer().options.valueOf("plugins"), "bStats"), "config.yml");
+@@ -578,7 +578,7 @@ public class Metrics {
+             boolean logFailedRequests = config.getBoolean("logFailedRequests", false);
+             // Only start Metrics, if it's enabled in the config
+             if (config.getBoolean("enabled", true)) {
+-                Metrics metrics = new Metrics("Paper", serverUUID, logFailedRequests, Bukkit.getLogger());
++                Metrics metrics = new Metrics("Volcano", serverUUID, logFailedRequests, Bukkit.getLogger());
+ 
+                 metrics.addCustomChart(new Metrics.SimplePie("minecraft_version", () -> {
+                     String minecraftVersion = Bukkit.getVersion();
+@@ -588,7 +588,7 @@ public class Metrics {
+ 
+                 metrics.addCustomChart(new Metrics.SingleLineChart("players", () -> Bukkit.getOnlinePlayers().size()));
+                 metrics.addCustomChart(new Metrics.SimplePie("online_mode", () -> Bukkit.getOnlineMode() ? "online" : "offline"));
+-                metrics.addCustomChart(new Metrics.SimplePie("paper_version", () -> (Metrics.class.getPackage().getImplementationVersion() != null) ? Metrics.class.getPackage().getImplementationVersion() : "unknown"));
++                metrics.addCustomChart(new Metrics.SimplePie("volcano_version", () -> (Metrics.class.getPackage().getImplementationVersion() != null) ? Metrics.class.getPackage().getImplementationVersion() : "unknown"));
+ 
+                 metrics.addCustomChart(new Metrics.DrilldownPie("java_version", () -> {
+                     Map<String, Map<String, Integer>> map = new HashMap<>();
+diff --git a/src/main/java/com/destroystokyo/paper/PaperConfig.java b/src/main/java/com/destroystokyo/paper/PaperConfig.java
+index 9f240c35..7b1b2fc1 100644
+--- a/src/main/java/com/destroystokyo/paper/PaperConfig.java
++++ b/src/main/java/com/destroystokyo/paper/PaperConfig.java
+@@ -97,7 +97,7 @@ public class PaperConfig {
+         }
+ 
+         if (!metricsStarted) {
+-            Metrics.PaperMetrics.startMetrics();
++            Metrics.VolcanoMetrics.startMetrics();
+             metricsStarted = true;
+         }
+     }
+diff --git a/src/main/java/net/minecraft/server/BlockState.java b/src/main/java/net/minecraft/server/BlockState.java
+index ea0e0ff4..a5ebca12 100644
+--- a/src/main/java/net/minecraft/server/BlockState.java
++++ b/src/main/java/net/minecraft/server/BlockState.java
+@@ -2,15 +2,62 @@ package net.minecraft.server;
+ 
+ import com.google.common.base.MoreObjects;
+ 
++// TacoSpigot start
++import java.util.Arrays;
++import java.util.HashMap;
++import java.util.Map;
++// TacoSpigot end
++
+ public abstract class BlockState<T extends Comparable<T>> implements IBlockState<T> {
+ 
+     private final Class<T> a;
+     private final String b;
+     private Integer c;
++    // TacoSpigot start
++    private final int id;
++
++    @Override
++    public int getId() {
++        return id;
++    }
++
++    private static final Map<String, Integer> blockStateIds = new HashMap<>();
++    private static volatile BlockState[] byId = new BlockState[0];
++
++    public static BlockState getById(int id) {
++        BlockState[] byId = BlockState.byId;
++        if (id >= 0 && id < byId.length) {
++            return byId[id];
++        } else {
++            throw new IllegalArgumentException("Invalid BlockState id: " + id);
++        }
++    }
++
++    private static synchronized int computeId(BlockState state) {
++        /*
++         * NOTE: We have to use a string as the key,
++         * since the BlockState object might not be fully initialized yet.
++         * This relies on the assumption that state == other
++         * if and only if (state.b == other.b && state.a == other.a).
++         * This is trie in the current version of minecraft,
++         * but future versions might change this
++         */
++        String stringId = state.b + ":" + state.a;
++        return blockStateIds.computeIfAbsent(stringId, (strId) -> {
++            BlockState[] byId = BlockState.byId;
++            int newId = byId.length;
++            byId = Arrays.copyOf(byId, newId + 1);
++            byId[newId] = state;
++            BlockState.byId = byId;
++            return newId;
++        });
++    }
++    // TacoSpigot end
+ 
+     protected BlockState(String s, Class<T> oclass) {
+         this.a = oclass;
+         this.b = s;
++        this.id = computeId(this); // TacoSpigot - compute id after setting fields
+     }
+ 
+     public String a() {
+diff --git a/src/main/java/net/minecraft/server/BlockStateBoolean.java b/src/main/java/net/minecraft/server/BlockStateBoolean.java
+index 71d2ad97..1b036500 100644
+--- a/src/main/java/net/minecraft/server/BlockStateBoolean.java
++++ b/src/main/java/net/minecraft/server/BlockStateBoolean.java
+@@ -43,4 +43,20 @@ public class BlockStateBoolean extends BlockState<Boolean> {
+     public int c() {
+         return 31 * super.c() + this.a.hashCode();
+     }
++
++    // TacoSpigot start
++    @Override
++    public int getValueId(Boolean value) {
++        return value ? 1 : 0;
++    }
++
++    @Override
++    public Boolean getByValueId(int id) {
++        return switch (id) {
++            case 0 -> false;
++            case 1 -> true;
++            default -> throw new IllegalArgumentException("Invalid id: " + id);
++        };
++    }
++    // TacoSpigot end
+ }
+diff --git a/src/main/java/net/minecraft/server/BlockStateEnum.java b/src/main/java/net/minecraft/server/BlockStateEnum.java
+index facbf30b..f567416d 100644
+--- a/src/main/java/net/minecraft/server/BlockStateEnum.java
++++ b/src/main/java/net/minecraft/server/BlockStateEnum.java
+@@ -47,6 +47,23 @@ public class BlockStateEnum<T extends Enum<T> & INamable> extends BlockState<T>
+         return ((INamable) t0).getName();
+     }
+ 
++    // TacoSpigot start
++    @Override
++    public int getValueId(T value) {
++        return value.ordinal();
++    }
++
++    @Override
++    public T getByValueId(int id) {
++        T[] values = this.b().getEnumConstants();
++        if (id >= 0 && id < values.length) {
++            return values[id];
++        } else {
++            throw new IllegalArgumentException("Invalid id: " + id);
++        }
++    }
++    // TacoSpigot end
++
+     public boolean equals_unused(Object object) { // Paper
+         if (this == object) {
+             return true;
+diff --git a/src/main/java/net/minecraft/server/BlockStateInteger.java b/src/main/java/net/minecraft/server/BlockStateInteger.java
+index 613cd0bc..bc486e13 100644
+--- a/src/main/java/net/minecraft/server/BlockStateInteger.java
++++ b/src/main/java/net/minecraft/server/BlockStateInteger.java
+@@ -12,12 +12,40 @@ public class BlockStateInteger extends BlockState<Integer> {
+     // CraftBukkit start
+     public final int min;
+     public final int max;
++    // TacoSpigot start
++    private final int range;
++
++    @Override
++    public int getValueId(Integer value) {
++        if (value < min) {
++            throw new IllegalArgumentException("Too small: " + value);
++        } else if (value > max) {
++            throw new IllegalArgumentException("Too big: " + value);
++        } else {
++            return value - min;
++        }
++    }
++
++    @Override
++    public Integer getByValueId(int id) {
++        if (id < 0) {
++            throw new IllegalArgumentException("Negative id: " + id);
++        } else if (id > range) {
++            throw new IllegalArgumentException("Id is out of range: " + id);
++        } else {
++            return id;
++        }
++    }
++    // TacoSpigot end
+ 
+     protected BlockStateInteger(String s, int i, int j) {
+         super(s, Integer.class);
+         this.min = i;
+         this.max = j;
+         // CraftBukkit end
++        // TacoSpigot start
++        this.range = (max - min); // min and max are _both_ inclusive (there's a reason you're not supposed to do this :p)
++        // TacoSpigot end
+         if (i < 0) {
+             throw new IllegalArgumentException("Min value of " + s + " must be 0 or greater");
+         } else if (j <= i) {
+diff --git a/src/main/java/net/minecraft/server/BlockStateList.java b/src/main/java/net/minecraft/server/BlockStateList.java
+new file mode 100644
+index 00000000..53ef4432
+--- /dev/null
++++ b/src/main/java/net/minecraft/server/BlockStateList.java
+@@ -0,0 +1,152 @@
++package net.minecraft.server;
++
++import com.google.common.base.MoreObjects;
++import com.google.common.collect.ImmutableList;
++import com.google.common.collect.ImmutableMap;
++import com.google.common.collect.ImmutableSortedMap;
++import com.google.common.collect.Lists;
++import com.google.common.collect.Maps;
++import com.google.common.collect.UnmodifiableIterator;
++import java.util.Collection;
++import java.util.Collections;
++import java.util.Iterator;
++import java.util.List;
++import java.util.Map;
++import java.util.regex.Pattern;
++import java.util.stream.Collectors;
++import java.util.stream.Stream;
++import javax.annotation.Nullable;
++
++public class BlockStateList<O, S extends IBlockDataHolder<S>> {
++
++    private static final Pattern a = Pattern.compile("^[a-z0-9_]+$");
++    private final O b;
++    private final ImmutableSortedMap<String, IBlockState<?>> c;
++    private final ImmutableList<S> d;
++
++    protected <A extends BlockDataAbstract<O, S>> BlockStateList(O o0, BlockStateList.b<O, S, A> blockstatelist_b, Map<String, IBlockState<?>> map) {
++        this.b = o0;
++        this.c = ImmutableSortedMap.copyOf(map);
++        Map<Map<IBlockState<?>, Comparable<?>>, A> map1 = Maps.newLinkedHashMap();
++        List<A> list = Lists.newArrayList();
++        Stream<List<Comparable<?>>> stream = Stream.of(Collections.emptyList());
++
++        for (IBlockState<?> iBlockState : this.c.values()) {
++            stream = stream.flatMap((list1) -> iBlockState.d().stream().map((comparable) -> {
++                List<Comparable<?>> list2 = Lists.newArrayList(list1);
++
++                list2.add(comparable);
++                return list2;
++            }));
++        }
++
++        stream.forEach((list1) -> {
++            Map<IBlockState<?>, Comparable<?>> map2 = MapGeneratorUtils.b(this.c.values(), list1);
++            A a0 = blockstatelist_b.create(o0, ImmutableMap.copyOf(map2));
++
++            map1.put(map2, a0);
++            list.add(a0);
++        });
++        Iterator<A> iterator = list.iterator();
++
++        while (iterator.hasNext()) {
++            A a0 = iterator.next();
++
++            a0.a((Map) map1);
++        }
++
++        this.d = ImmutableList.copyOf((Iterable<S>) list);
++    }
++
++    public ImmutableList<S> a() {
++        return this.d;
++    }
++
++    public S getBlockData() {
++        return this.d.get(0);
++    }
++
++    public O getBlock() {
++        return this.b;
++    }
++
++    public Collection<IBlockState<?>> d() {
++        return this.c.values();
++    }
++
++    public String toString() {
++        return MoreObjects.toStringHelper(this).add("block", this.b).add("properties", this.c.values().stream().map(IBlockState::a).collect(Collectors.toList())).toString();
++    }
++
++    @Nullable
++    public IBlockState<?> a(String s) {
++        return (IBlockState) this.c.get(s);
++    }
++
++    public static class a<O, S extends IBlockDataHolder<S>> {
++
++        private final O a;
++        private final Map<String, IBlockState<?>> b = Maps.newHashMap();
++
++        public a(O o0) {
++            this.a = o0;
++        }
++
++        public BlockStateList.a<O, S> a(IBlockState<?>... aiblockstate) {
++            IBlockState[] aiblockstate1 = aiblockstate;
++            int i = aiblockstate.length;
++
++            for (int j = 0; j < i; ++j) {
++                IBlockState<?> iblockstate = aiblockstate1[j];
++
++                this.a(iblockstate);
++                this.b.put(iblockstate.a(), iblockstate);
++            }
++
++            return this;
++        }
++
++        private <T extends Comparable<T>> void a(IBlockState<T> iblockstate) {
++            String s = iblockstate.a();
++
++            if (!BlockStateList.a.matcher(s).matches()) {
++                throw new IllegalArgumentException(this.a + " has invalidly named property: " + s);
++            } else {
++                Collection<T> collection = iblockstate.d();
++
++                if (collection.size() <= 1) {
++                    throw new IllegalArgumentException(this.a + " attempted use property " + s + " with <= 1 possible values");
++                } else {
++                    Iterator<T> iterator = collection.iterator();
++
++                    String s1;
++
++                    do {
++                        if (!iterator.hasNext()) {
++                            if (this.b.containsKey(s)) {
++                                throw new IllegalArgumentException(this.a + " has duplicate property: " + s);
++                            }
++
++                            return;
++                        }
++
++                        T t0 = iterator.next();
++
++                        s1 = iblockstate.a(t0);
++                    } while (BlockStateList.a.matcher(s1).matches());
++
++                    throw new IllegalArgumentException(this.a + " has property: " + s + " with invalidly named value: " + s1);
++                }
++            }
++        }
++
++        public <A extends BlockDataAbstract<O, S>> BlockStateList<O, S> a(BlockStateList.b<O, S, A> blockstatelist_b) {
++            return new BlockStateList<>(this.a, blockstatelist_b, this.b);
++        }
++    }
++
++    public interface b<O, S extends IBlockDataHolder<S>, A extends BlockDataAbstract<O, S>> {
++
++        A create(O o0, ImmutableMap<IBlockState<?>, Comparable<?>> immutablemap);
++    }
++}
+diff --git a/src/main/java/net/minecraft/server/EULA.java b/src/main/java/net/minecraft/server/EULA.java
+index e13e17bd..a9021553 100644
+--- a/src/main/java/net/minecraft/server/EULA.java
++++ b/src/main/java/net/minecraft/server/EULA.java
+@@ -52,7 +52,7 @@ public class EULA {
+ 
+                 fileoutputstream = new FileOutputStream(this.b);
+                 properties.setProperty("eula", "false");
+-                properties.store(fileoutputstream, "By changing the setting below to TRUE you are indicating your agreement to our EULA (https://account.mojang.com/documents/minecraft_eula).\nYou also agree that tacos are tasty, and the best food in the world.");  // Paper - fix lag);
++                properties.store(fileoutputstream, "By changing the setting below to TRUE you are indicating your agreement to our EULA (https://account.mojang.com/documents/minecraft_eula).\nYou also agree LavaPowered is the best team.");  // Volcano - fix Paper's lag issue);
+             } catch (Exception exception) {
+                 EULA.a.warn("Failed to save {}", this.b, exception);
+             } finally {
+diff --git a/src/main/java/net/minecraft/server/EntityArrow.java b/src/main/java/net/minecraft/server/EntityArrow.java
+index 6aa518f1..f00134d7 100644
+--- a/src/main/java/net/minecraft/server/EntityArrow.java
++++ b/src/main/java/net/minecraft/server/EntityArrow.java
+@@ -8,6 +8,8 @@ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
+ 
+ // CraftBukkit start
++import net.techcable.tacospigot.event.entity.ArrowCollideEvent;
++import org.bukkit.entity.Arrow;
+ import org.bukkit.entity.LivingEntity;
+ import org.bukkit.event.entity.EntityCombustByEntityEvent;
+ import org.bukkit.event.player.PlayerPickupArrowEvent;
+@@ -204,6 +206,16 @@ public abstract class EntityArrow extends Entity implements IProjectile {
+             }
+             // Paper end
+ 
++            // TacoSpigot start - fire collide event
++            if (movingobjectposition != null && movingobjectposition.entity != null) {
++                ArrowCollideEvent event = new ArrowCollideEvent((Arrow) this.getBukkitEntity(), movingobjectposition.entity.getBukkitEntity());
++                this.world.getServer().getPluginManager().callEvent(event);
++                if (event.isCancelled()) {
++                    movingobjectposition = null;
++                }
++            }
++            // TacoSpigot end
++
+             if (movingobjectposition != null && !flag) {
+                 this.a(movingobjectposition);
+                 this.impulse = true;
+diff --git a/src/main/java/net/minecraft/server/EntityHuman.java b/src/main/java/net/minecraft/server/EntityHuman.java
+index f5d9b4ab..05ba4c0d 100644
+--- a/src/main/java/net/minecraft/server/EntityHuman.java
++++ b/src/main/java/net/minecraft/server/EntityHuman.java
+@@ -24,6 +24,8 @@ import org.bukkit.event.player.PlayerVelocityEvent;
+ import org.bukkit.util.Vector;
+ // CraftBukkit end
+ 
++import static net.techcable.tacospigot.TacoSpigotConfig.betterPvp; // TacoSpigot
++
+ public abstract class EntityHuman extends EntityLiving {
+ 
+     private static final DataWatcherObject<Float> a = DataWatcher.a(EntityHuman.class, DataWatcherRegistry.c);
+@@ -68,6 +70,9 @@ public abstract class EntityHuman extends EntityLiving {
+     private final ItemCooldown ce;
+     @Nullable
+     public EntityFishingHook hookedFish;
++
++    public int clientTicksSinceLastAttack; // TacoSpigot
++
+     // Paper start
+     public boolean affectsSpawning = true;
+     // Paper end
+@@ -2071,12 +2076,26 @@ public abstract class EntityHuman extends EntityLiving {
+ 
+     public float getCooledAttackStrength(float adjustTicks) { return r(adjustTicks); } // Paper - OBFHELPER
+     public float r(float f) {
+-        return MathHelper.a(((float) this.aH + f) / this.dG(), 0.0F, 1.0F);
++        // TacoSpigot start - use both client and server ticks
++        if (betterPvp) {
++            return MathHelper.a(
++                    (float) (Math.max(
++                            this.aH,
++                            this.clientTicksSinceLastAttack
++                    ) + f ) / this.dG(),
++                    0.0F,
++                    1.0F
++            );
++        } else {
++            return MathHelper.a(((float) this.aH + f) / this.dG(), 0.0F, 1.0F);
++        }
++        // TacoSpigot end
+     }
+ 
+     public void resetCooldown() { dH(); } // Paper - OBFHELPER
+     public void dH() {
+         this.aH = 0;
++        this.clientTicksSinceLastAttack = 0; // TacoSpigot
+     }
+ 
+     public ItemCooldown getCooldownTracker() {
+diff --git a/src/main/java/net/minecraft/server/IBlockState.java b/src/main/java/net/minecraft/server/IBlockState.java
+new file mode 100644
+index 00000000..3a9d832c
+--- /dev/null
++++ b/src/main/java/net/minecraft/server/IBlockState.java
+@@ -0,0 +1,25 @@
++package net.minecraft.server;
++
++import java.util.Collection;
++import java.util.Optional;
++
++public interface IBlockState<T extends Comparable<T>> {
++
++    String a();
++
++    Collection<T> d();
++
++    Class<T> b();
++
++    Optional<T> b(String s);
++
++    String a(T t0);
++
++    // TacoSpigot start
++    public int getId();
++
++    public int getValueId(T value);
++
++    public T getByValueId(int id);
++    // TacoSpigot start
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 8db5c6a3..c7168913 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1348,7 +1348,7 @@ public abstract class MinecraftServer implements IAsyncTaskHandler, IMojangStati
+     }
+ 
+     public String getServerModName() {
+-        return "Paper"; //Paper - Paper > // Spigot - Spigot > // CraftBukkit - cb > vanilla!
++        return "Volcano"; // Volcano - Volcano > // TacoSpigot - TacoSpigot > //Paper - Paper > // Spigot - Spigot > // CraftBukkit - cb > vanilla!
+     }
+ 
+     public CrashReport b(CrashReport crashreport) {
+diff --git a/src/main/java/net/minecraft/server/PlayerChunkMap.java b/src/main/java/net/minecraft/server/PlayerChunkMap.java
+index b7dda8e2..62379057 100644
+--- a/src/main/java/net/minecraft/server/PlayerChunkMap.java
++++ b/src/main/java/net/minecraft/server/PlayerChunkMap.java
+@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
+ import com.google.common.collect.Sets;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
++
+ import java.util.Collections;
+ import java.util.Iterator;
+ import java.util.List;
+@@ -17,6 +18,9 @@ import javax.annotation.Nullable;
+ // CraftBukkit start
+ import java.util.LinkedList;
+ // CraftBukkit end
++// TacoSpigot start
++import org.spigotmc.AsyncCatcher;
++// TacoSpigot end
+ 
+ public class PlayerChunkMap {
+ 
+@@ -27,12 +31,13 @@ public class PlayerChunkMap {
+         return entityplayer != null && (!entityplayer.isSpectator() || entityplayer.getWorldServer().getGameRules().getBoolean("spectatorsGenerateChunks"));
+     }; static final Predicate<EntityPlayer> CAN_GEN_CHUNKS = b; // Paper - OBFHELPER
+     private final WorldServer world;
+-    private final List<EntityPlayer> managedPlayers = Lists.newArrayList();
++    // TacoSpigot start - catch async access
++    private final List<EntityPlayer> managedPlayers = AsyncCatcher.catchAsyncUsage(Lists.newArrayList(), "list access PlayerChunkMap.managedPlayers");
+     private final Long2ObjectMap<PlayerChunk> e = new Long2ObjectOpenHashMap(4096); Long2ObjectMap<PlayerChunk> getChunks() { return e; } // Paper - OBFHELPER
+-    private final Set<PlayerChunk> f = Sets.newHashSet();
+-    private final List<PlayerChunk> g = Lists.newLinkedList();
+-    private final List<PlayerChunk> h = Lists.newLinkedList();
+-    private final List<PlayerChunk> i = Lists.newArrayList();
++    private final Set<PlayerChunk> f = AsyncCatcher.catchAsyncUsage(Sets.newHashSet(), "set access PlayerChunkMap.f");
++    private final List<PlayerChunk> g = AsyncCatcher.catchAsyncUsage(Lists.newLinkedList(), "list access PlayerChunkMap.g");
++    private final List<PlayerChunk> h = AsyncCatcher.catchAsyncUsage(Lists.newLinkedList(), "list access PlayerChunkMap.h");
++    private final List<PlayerChunk> i = AsyncCatcher.catchAsyncUsage(Lists.newArrayList(), "list access PlayerChunkMap.i");
+     private int j;public int getViewDistance() { return j; } // Paper OBFHELPER
+     private long k;
+     private boolean l = true;
+diff --git a/src/main/java/net/minecraft/server/PlayerConnection.java b/src/main/java/net/minecraft/server/PlayerConnection.java
+index 65e76491..960f19f3 100644
+--- a/src/main/java/net/minecraft/server/PlayerConnection.java
++++ b/src/main/java/net/minecraft/server/PlayerConnection.java
+@@ -874,6 +874,8 @@ public class PlayerConnection implements PacketListenerPlayIn, ITickable {
+                     this.syncPosition();
+                 }
+ 
++                this.player.clientTicksSinceLastAttack++; // TacoSpigot
++
+                 if (this.teleportPos != null) {
+                     if (this.e - this.A > 20) {
+                         this.A = this.e;
+diff --git a/src/main/java/net/minecraft/server/World.java b/src/main/java/net/minecraft/server/World.java
+index d20f6ac7..7864fc25 100644
+--- a/src/main/java/net/minecraft/server/World.java
++++ b/src/main/java/net/minecraft/server/World.java
+@@ -160,6 +160,7 @@ public abstract class World implements IEntityAccess, GeneratorAccess, IIBlockAc
+ 
+     public final com.destroystokyo.paper.PaperWorldConfig paperConfig; // Paper
+     public final ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
++    public final net.techcable.tacospigot.TacoSpigotWorldConfig tacoConfig; // TacoSpigot
+ 
+     public final co.aikar.timings.WorldTimingsHandler timings; // Paper
+     public boolean guardEntityList; // Spigot // Paper - public
+@@ -187,6 +188,7 @@ public abstract class World implements IEntityAccess, GeneratorAccess, IIBlockAc
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig( worlddata.getName() ); // Spigot
+         this.paperConfig = new com.destroystokyo.paper.PaperWorldConfig(worlddata.getName(), this.spigotConfig); // Paper
+         this.chunkPacketBlockController = this.paperConfig.antiXray ? new ChunkPacketBlockControllerAntiXray(this.paperConfig) : ChunkPacketBlockController.NO_OPERATION_INSTANCE; // Paper - Anti-Xray
++        this.tacoConfig = new net.techcable.tacospigot.TacoSpigotWorldConfig(worlddata.getName()); // TacoSpigot
+         this.generator = gen;
+         this.world = new CraftWorld((WorldServer) this, gen, env);
+         this.ticksPerAnimalSpawns = this.getServer().getTicksPerAnimalSpawns(); // CraftBukkit
+diff --git a/src/main/java/net/techcable/tacospigot/ArrayMap.java b/src/main/java/net/techcable/tacospigot/ArrayMap.java
+new file mode 100644
+index 00000000..6d19feec
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/ArrayMap.java
+@@ -0,0 +1,211 @@
++package net.techcable.tacospigot;
++
++import it.unimi.dsi.fastutil.ints.AbstractInt2ObjectMap;
++import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
++import it.unimi.dsi.fastutil.objects.*;
++
++import javax.annotation.Nonnull;
++import javax.annotation.concurrent.ThreadSafe;
++import java.util.NoSuchElementException;
++import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
++import java.util.concurrent.atomic.AtomicReferenceArray;
++import java.util.function.BiConsumer;
++import java.util.function.ObjIntConsumer;
++
++import static com.google.common.base.Preconditions.*;
++
++/**
++ * A concurrent map of integers to object with non-locking read operations, and locking write operations
++ * <p>
++ * This map is backed by an array, and therefore the amount of overhead this map incurs is equal to the largest key/integer
++ * Therefore you should <i>not use this map if your keys will be large or scattered!</i>
++ * However, if the keys are dense and small, this may actually take less memory than a HashMap.
++ * </p>
++ *
++ * @param <V> the type of values
++ */
++@ThreadSafe
++public final class ArrayMap<V> extends AbstractInt2ObjectMap<V> {
++    private static final AtomicIntegerFieldUpdater<ArrayMap> SIZE_UPDATER = AtomicIntegerFieldUpdater.newUpdater(ArrayMap.class, "size");
++    private volatile int size;
++    @Nonnull
++    private volatile AtomicReferenceArray<V> values = new AtomicReferenceArray<>(0);
++    private volatile ObjectSet<Int2ObjectMap.Entry<V>> entrySet;
++    private volatile ObjectCollection<V> valuesCollection;
++
++    @Override
++    public ObjectSet<Int2ObjectMap.Entry<V>> int2ObjectEntrySet() {
++        return entrySet != null ? entrySet : (entrySet = new AbstractObjectSet<>() {
++            @Override
++            @Nonnull
++            public ObjectIterator<Int2ObjectMap.Entry<V>> iterator() {
++                return new EntryIterator<Int2ObjectMap.Entry<V>>() {
++                    @Override
++                    public Int2ObjectMap.Entry<V> next() {
++                        return nextEntry();
++                    }
++                };
++            }
++
++            @Override
++            public int size() {
++                return size;
++            }
++        });
++    }
++
++    @Override
++    @Nonnull
++    public ObjectCollection<V> values() {
++        return valuesCollection != null ? valuesCollection : (valuesCollection = new AbstractObjectCollection<V>() {
++            @Override
++            @Nonnull
++            public ObjectIterator<V> iterator() {
++                return new EntryIterator<V>() {
++                    @Override
++                    @Nonnull
++                    public V next() {
++                        return nextEntry().getValue();
++                    }
++                };
++            }
++
++            @Override
++            public int size() {
++                return size;
++            }
++        });
++    }
++
++    @Override
++    public V get(int i) {
++        AtomicReferenceArray<V> values = this.values;
++        return i >= 0 && i > values.length() ? values.get(i) : null;
++    }
++
++    @Override
++    public synchronized V put(int key, V value) {
++        checkNotNull(value, "Null value");
++        AtomicReferenceArray<V> values = this.values;
++        int length;
++        if (key < 0) {
++            throw new IllegalArgumentException(negativeKey(key));
++        } else if (key >= values.length()) {
++            expandAndPut(key, value); // Put in separate method for inlining (its an unlikely slow-case)
++            return null;
++        } else {
++            V oldValue = values.getAndSet(key, value);
++            if (oldValue == null) SIZE_UPDATER.incrementAndGet(this); // New entry
++            return oldValue;
++        }
++    }
++
++    private void expandAndPut(int key, V value) {
++        assert Thread.holdsLock(this);
++        AtomicReferenceArray<V> values = this.values;
++        AtomicReferenceArray<V> copy = new AtomicReferenceArray<>(key + 1);
++        for (int i = 0; i < values.length(); i++) {
++            copy.set(i, values.get(i));
++        }
++        copy.set(key, value);
++        this.values = copy;
++        SIZE_UPDATER.incrementAndGet(this);
++    }
++
++    @Override
++    public boolean containsKey(int i) {
++        AtomicReferenceArray<V> values = this.values;
++        return i >= 0 && i < values.length() && values.get(i) != null;
++    }
++
++    @Override
++    public void forEach(BiConsumer<? super Integer, ? super V> action) {
++        forEachPrimative((value, key) -> action.accept(key, value));
++    }
++
++    public void forEachPrimative(ObjIntConsumer<V> action) {
++        AtomicReferenceArray<V> values = this.values;
++        for (int index = 0; index < values.length(); index++) {
++            V value = values.get(index);
++            if (value != null) {
++                action.accept(value, index);
++            }
++        }
++    }
++
++    private String negativeKey(int key) {
++        return "Can't add a negative key " + key + " to an ArrayMap!";
++    }
++
++    @Override
++    public int size() {
++        return size;
++    }
++
++    private abstract class EntryIterator<T> implements ObjectIterator<T> {
++        private int index = 0;
++
++        @Override
++        public int skip(int toSkip) {
++            if (toSkip > values.length()) toSkip = values.length();
++            index += toSkip;
++            return toSkip;
++        }
++
++        @Override
++        public boolean hasNext() {
++            AtomicReferenceArray<V> values = ArrayMap.this.values;
++            while (index < values.length()) {
++                V value = values.get(index);
++                if (value != null) {
++                    return true;
++                } else {
++                    index++;
++                }
++            }
++            return false;
++        }
++
++        /* default */ Int2ObjectMap.Entry<V> nextEntry() {
++            AtomicReferenceArray<V> values = ArrayMap.this.values;
++            while (index < values.length()) {
++                int key = index++;
++                V value = values.get(key);
++                if (value != null) {
++                    return new Entry(key, value);
++                }
++            }
++            throw new NoSuchElementException();
++        }
++    }
++
++    public class Entry implements Int2ObjectMap.Entry<V> {
++        private final int key;
++        private V value;
++
++        public Entry(int key, V value) {
++            this.key = key;
++            this.value = checkNotNull(value, "Null value");
++        }
++
++        @Override
++        public int getIntKey() {
++            return key;
++        }
++
++        @Override
++        public Integer getKey() {
++            return getIntKey();
++        }
++
++        @Override
++        public V getValue() {
++            return value;
++        }
++
++        @Override
++        public V setValue(V value) {
++            return put(key, this.value = checkNotNull(value, "Null value"));
++        }
++    }
++}
+diff --git a/src/main/java/net/techcable/tacospigot/ImmutableArrayMap.java b/src/main/java/net/techcable/tacospigot/ImmutableArrayMap.java
+new file mode 100644
+index 00000000..79c66ed6
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/ImmutableArrayMap.java
+@@ -0,0 +1,138 @@
++package net.techcable.tacospigot;
++
++import com.google.common.base.Preconditions;
++import org.apache.commons.lang3.ArrayUtils;
++
++import java.util.*;
++import java.util.function.IntFunction;
++import java.util.function.ToIntFunction;
++
++public class ImmutableArrayMap<K, V> {
++    private final int offset;
++    private final Object[] data;
++    private final Object[] outlyingData;
++    private final int[] outlyingIds;
++
++    private final int size;
++
++    /**
++     * Allow at most 48 empty values in the range of sequential values.
++     * This should be aood amount for the block state ids,
++     * since the indexes shouldn't be too far apart, and we need them to be fast.
++     */
++    private static final int MAXIMUM_EMPTY = 48;
++
++    public ImmutableArrayMap(ToIntFunction<K> indexer, IntFunction<K> byIndex, Map<K, V> map) {
++        Preconditions.checkNotNull(indexer, "Null indexer function");
++        Preconditions.checkNotNull(byIndex, "Null byIndex function");
++        Preconditions.checkNotNull(map, "Null map");
++        this.size = map.size();
++        Map.Entry<K, V>[] entries = new Map.Entry[size];
++        Iterator<Map.Entry<K, V>> iterator = map.entrySet().iterator();
++        for (int i = 0; i < entries.length; i++) {
++            Preconditions.checkArgument(iterator.hasNext(), "Expected %s entries but only got %s", size, i + 1);
++            entries[i] = iterator.next();
++        }
++        Arrays.sort(entries, Comparator.comparingInt(entry -> indexer.applyAsInt(entry.getKey())));
++        Preconditions.checkArgument(!iterator.hasNext(), "Got more than expected %s entries", size);
++        int[] ids = Arrays.stream(entries).map(Map.Entry::getKey).mapToInt(indexer).toArray();
++        assert Arrays.equals(ids, Arrays.stream(ids).sorted().toArray()) : "Entries should be sorted by id!";
++        if (ids.length > 0) {
++            IDRange range = IDRange.findLargestRange(ids, MAXIMUM_EMPTY);
++            assert range.size() <= size;
++            this.data = new Object[range.span()];
++            this.outlyingIds = size > range.size() ? new int[size - range.size()] : ArrayUtils.EMPTY_INT_ARRAY;
++            this.outlyingData = size > range.size() ? new Object[size - range.size()] : ArrayUtils.EMPTY_OBJECT_ARRAY;
++            this.offset = range.minId;
++            int outlyingIndex = 0;
++            for (Map.Entry<K, V> entry : entries) {
++                K key = entry.getKey();
++                V value = entry.getValue();
++                int id = indexer.applyAsInt(key);
++                Preconditions.checkArgument(id >= 0, "Negative id for %s: %s", key, id);
++                if (id >= range.minId && id <= range.maxId) {
++                    int index = id - offset;
++                    data[index] = value;
++                } else {
++                    int index = outlyingIndex++;
++                    outlyingIds[index] = id;
++                    outlyingData[index] = value;
++                }
++            }
++        } else {
++            this.offset = 0;
++            this.data = ArrayUtils.EMPTY_OBJECT_ARRAY;
++            this.outlyingIds = ArrayUtils.EMPTY_INT_ARRAY;
++            this.outlyingData = ArrayUtils.EMPTY_OBJECT_ARRAY;
++        }
++    }
++
++    /* default */ static class IDRange {
++        public final int[] ids;
++        public final int minIndex, maxIndex; // Inclusive end
++        public final int minId, maxId;
++
++        public IDRange(int[] ids, int minIndex, int maxIndex) {
++            assert minIndex <= maxIndex;
++            this.ids = Objects.requireNonNull(ids);
++            this.minIndex = minIndex;
++            this.maxIndex = maxIndex;
++            this.minId = ids[minIndex];
++            this.maxId = ids[maxIndex];
++            assert size() <= span();
++        }
++
++        public int size() {
++            return maxIndex - minIndex + 1;
++        }
++
++        public int span() {
++            return maxId - minId + 1;
++        }
++
++        public static IDRange findLargestRange(int[] ids, int maximumEmpty) {
++            assert ids.length > 0;
++            IDRange largestRange = new IDRange(ids, 0, 0);
++            for (int minIndex = 0; minIndex < ids.length; minIndex++) {
++                // Find the largest 'maxIndex' where numEmpty <= maximumEmpty
++                int maxIndex = minIndex;
++                int maxId = ids[maxIndex];
++                int numEmpty = 0;
++                while (maxIndex + 1 < ids.length) {
++                    int newMaxId = ids[maxIndex + 1];
++                    assert newMaxId > maxId;
++                    int distance = newMaxId - maxId;
++                    // The new number of empty elements is any distance bigger than one
++                    int newNumEmpty = numEmpty + (distance - 1);
++                    if (newNumEmpty > maximumEmpty) break;
++                    numEmpty = newNumEmpty;
++                    maxIndex += 1;
++                }
++                IDRange range = new IDRange(ids, minIndex, maxIndex);
++
++                if (range.size() > largestRange.size()) {
++                    largestRange = range;
++                }
++            }
++            return largestRange;
++        }
++    }
++
++    public int size() {
++        return size;
++    }
++
++    public V get(int id) {
++        int index = id - offset;
++        if (index >= 0 && index < data.length) {
++            return (V) data[index];
++        }
++        int outlyingIndex = Arrays.binarySearch(outlyingIds, id);
++        if (outlyingIndex >= 0 && outlyingIndex < outlyingData.length) {
++            return (V) outlyingData[outlyingIndex];
++        } else {
++            return null;
++        }
++    }
++
++}
+diff --git a/src/main/java/net/techcable/tacospigot/ImmutableArrayTable.java b/src/main/java/net/techcable/tacospigot/ImmutableArrayTable.java
+new file mode 100644
+index 00000000..9a0f3104
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/ImmutableArrayTable.java
+@@ -0,0 +1,36 @@
++package net.techcable.tacospigot;
++
++import com.google.common.base.Preconditions;
++import com.google.common.collect.ImmutableMap;
++import com.google.common.collect.Table;
++import net.techcable.tacospigot.function.ObjIntBiFunction;
++
++import java.util.Map;
++import java.util.function.IntFunction;
++import java.util.function.ToIntBiFunction;
++import java.util.function.ToIntFunction;
++
++public class ImmutableArrayTable<R, C, V> {
++    private final ImmutableArrayMap<R, ImmutableArrayMap<C, V>> rowMap;
++
++    public ImmutableArrayTable(ToIntFunction<R> rowIndexer, IntFunction<R> rowById, ToIntBiFunction<R, C> columnGetId, ObjIntBiFunction<R, C> columnById, Table<R, C, V> table) {
++        Preconditions.checkNotNull(table, "Null table");
++        ImmutableMap.Builder<R, ImmutableArrayMap<C, V>> rowMapBuilder = ImmutableMap.builder();
++        for (Map.Entry<R, Map<C, V>> rowEntry : table.rowMap().entrySet()) {
++            R row = rowEntry.getKey();
++            Preconditions.checkNotNull(row, "Null row");
++            ImmutableMap.Builder<C, V> rowMapEntryBuilder = ImmutableMap.builder();
++            for (Map.Entry<C, V> rowEntryEntry : rowEntry.getValue().entrySet()) {
++                rowMapEntryBuilder.put(rowEntryEntry);
++            }
++            rowMapBuilder.put(row, new ImmutableArrayMap<>((c) -> columnGetId.applyAsInt(row, c), (id) -> columnById.apply(row, id), rowMapEntryBuilder.build()));
++        }
++        this.rowMap = new ImmutableArrayMap<>(rowIndexer, rowById, rowMapBuilder.build());
++    }
++
++    public V get(int rowId, int columnId) {
++        ImmutableArrayMap<C, V> rowEntry = rowMap.get(rowId);
++        return rowEntry != null ? rowEntry.get(columnId) : null;
++    }
++
++}
+diff --git a/src/main/java/net/techcable/tacospigot/NoOpLock.java b/src/main/java/net/techcable/tacospigot/NoOpLock.java
+new file mode 100644
+index 00000000..a7fbc33c
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/NoOpLock.java
+@@ -0,0 +1,40 @@
++package net.techcable.tacospigot;
++
++import java.util.concurrent.TimeUnit;
++import java.util.concurrent.locks.Condition;
++import java.util.concurrent.locks.Lock;
++
++public class NoOpLock implements Lock {
++    public static final NoOpLock INSTANCE = new NoOpLock();
++
++    private NoOpLock() {
++    }
++
++    @Override
++    public void lock() {
++    }
++
++    @Override
++    public void lockInterruptibly() {
++    }
++
++    @Override
++    public boolean tryLock() {
++        return true;
++    }
++
++    @Override
++    public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
++        return true;
++    }
++
++    @Override
++    public void unlock() {
++    }
++
++    @Override
++    public Condition newCondition() {
++        throw new UnsupportedOperationException();
++    }
++
++}
+diff --git a/src/main/java/net/techcable/tacospigot/NoOpReadWriteLock.java b/src/main/java/net/techcable/tacospigot/NoOpReadWriteLock.java
+new file mode 100644
+index 00000000..ea7cc601
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/NoOpReadWriteLock.java
+@@ -0,0 +1,25 @@
++package net.techcable.tacospigot;
++
++import javax.annotation.Nonnull;
++import java.util.concurrent.locks.Lock;
++import java.util.concurrent.locks.ReadWriteLock;
++
++public class NoOpReadWriteLock implements ReadWriteLock {
++    public static final NoOpReadWriteLock INSTANCE = new NoOpReadWriteLock();
++
++    private NoOpReadWriteLock() {
++    }
++
++    @Override
++    @Nonnull
++    public Lock readLock() {
++        return NoOpLock.INSTANCE;
++    }
++
++    @Override
++    @Nonnull
++    public Lock writeLock() {
++        return NoOpLock.INSTANCE;
++    }
++
++}
+diff --git a/src/main/java/net/techcable/tacospigot/SimpleMap.java b/src/main/java/net/techcable/tacospigot/SimpleMap.java
+new file mode 100644
+index 00000000..27559ee6
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/SimpleMap.java
+@@ -0,0 +1,10 @@
++package net.techcable.tacospigot;
++
++import javax.annotation.Nonnull;
++import javax.annotation.Nullable;
++
++@FunctionalInterface
++public interface SimpleMap<K, V> {
++    @Nullable
++    public V get(@Nonnull K key);
++}
+diff --git a/src/main/java/net/techcable/tacospigot/SimpleTable.java b/src/main/java/net/techcable/tacospigot/SimpleTable.java
+new file mode 100644
+index 00000000..f76ad60b
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/SimpleTable.java
+@@ -0,0 +1,10 @@
++package net.techcable.tacospigot;
++
++import javax.annotation.Nonnull;
++import javax.annotation.Nullable;
++
++@FunctionalInterface
++public interface SimpleTable<R, C, V> {
++    @Nullable
++    public V get(@Nonnull R row, @Nonnull C column);
++}
+diff --git a/src/main/java/net/techcable/tacospigot/TacoSpigotConfig.java b/src/main/java/net/techcable/tacospigot/TacoSpigotConfig.java
+new file mode 100644
+index 00000000..8e65acd8
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/TacoSpigotConfig.java
+@@ -0,0 +1,120 @@
++package net.techcable.tacospigot;
++
++import com.google.common.base.Throwables;
++import org.bukkit.Bukkit;
++import org.bukkit.configuration.InvalidConfigurationException;
++import org.bukkit.configuration.file.YamlConfiguration;
++
++import java.io.File;
++import java.io.IOException;
++import java.lang.reflect.InvocationTargetException;
++import java.lang.reflect.Method;
++import java.lang.reflect.Modifier;
++import java.util.List;
++import java.util.logging.Level;
++
++public class TacoSpigotConfig {
++
++    private static File CONFIG_FILE;
++    private static final String HEADER = "This is the main configuration file for TacoSpigot.\n" + "As you can see, there's tons to configure. Some options may impact gameplay, so use\n" + "with caution, and make sure you know what each option does before configuring.\n" + "\n" + "If you need help with the configuration or have any questions related to TacoSpigot,\n" + "join us at the IRC.\n" + "\n" + "IRC: #techcable @ irc.spi.gt ( http://irc.spi.gt/iris/?channels=taco )\n";
++     /*========================================================================*/
++     static YamlConfiguration config;
++     static int version;
++     /*========================================================================*/
++
++    public static void init(File configFile) {
++        CONFIG_FILE = configFile;
++        config = new YamlConfiguration();
++        try {
++            System.out.println("Loading TacoSpigot configuration from: " + configFile.getName());
++            config.load(CONFIG_FILE);
++        } catch (IOException ex) {
++        } catch (InvalidConfigurationException ex) {
++            Bukkit.getLogger().log(Level.SEVERE, "Could not load taco.yml, please correct your syntax errors", ex);
++            throw Throwables.propagate(ex);
++        }
++        config.options().header(HEADER);
++        config.options().copyDefaults(true);
++
++        version = getInt("config-version", 1);
++        set("config-version", 1);
++        readConfig(TacoSpigotConfig.class, null);
++    }
++
++    static void readConfig(Class<?> clazz, Object instance) {
++        for (Method method : clazz.getDeclaredMethods()) {
++            if (Modifier.isPrivate(method.getModifiers())) {
++                if (method.getParameterTypes().length == 0 && method.getReturnType() == Void.TYPE) {
++                    try {
++                        method.setAccessible(true);
++                        method.invoke(instance);
++                    } catch (InvocationTargetException ex) {
++                        throw Throwables.propagate(ex.getCause());
++                    } catch (Exception ex) {
++                        Bukkit.getLogger().log(Level.SEVERE, "Error invoking " + method, ex);
++                    }
++                }
++            }
++        }
++
++        try {
++            config.save(CONFIG_FILE);
++        } catch (IOException ex) {
++            Bukkit.getLogger().log(Level.SEVERE, "Could not save " + CONFIG_FILE, ex);
++        }
++    }
++
++    private static void set(String path, Object val) {
++        config.set(path, val);
++    }
++
++    private static boolean getBoolean(String path, boolean def) {
++        config.addDefault(path, def);
++        return config.getBoolean(path, config.getBoolean(path));
++    }
++
++    private static double getDouble(String path, double def) {
++        config.addDefault(path, def);
++        return config.getDouble(path, config.getDouble(path));
++    }
++
++    private static float getFloat(String path, float def) {
++        return (float) getDouble(path, def);
++    }
++
++    private static int getInt(String path, int def) {
++        config.addDefault(path, def);
++        return config.getInt(path, config.getInt(path));
++    }
++
++    private static <T> List getList(String path, T def) {
++        config.addDefault(path, def);
++        return config.getList(path, config.getList(path));
++    }
++
++    private static String getString(String path, String def) {
++        config.addDefault(path, def);
++        return config.getString(path, config.getString(path));
++    }
++
++    public static boolean useArraysForBlockStates;
++    private static void useArraysForBlockStates() {
++        useArraysForBlockStates = getBoolean("useArraysForBlockStates", false);
++    }
++
++    public static boolean betterPvp;
++    private static void betterPvp() {
++        betterPvp = getBoolean("betterPvp", false);
++    }
++
++    public static boolean useArraysForDatawatcher;
++    private static void useArraysForDatawatcher() {
++        useArraysForDatawatcher = getBoolean("useArraysForDatawatcher", false);
++    }
++
++    public static boolean disableDatawatcherReadLocking;
++    private static void disableDatawatcherReadLocking() {
++        disableDatawatcherReadLocking = getBoolean("disableDatawatcherReadLocking", false);
++    }
++
++}
+diff --git a/src/main/java/net/techcable/tacospigot/TacoSpigotWorldConfig.java b/src/main/java/net/techcable/tacospigot/TacoSpigotWorldConfig.java
+new file mode 100644
+index 00000000..41e11a68
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/TacoSpigotWorldConfig.java
+@@ -0,0 +1,66 @@
++package net.techcable.tacospigot;
++
++import org.bukkit.Bukkit;
++import org.bukkit.configuration.file.YamlConfiguration;
++
++import java.util.List;
++
++public class TacoSpigotWorldConfig {
++
++    private final String worldName;
++    private final YamlConfiguration config;
++    private boolean verbose;
++
++    public TacoSpigotWorldConfig(String worldName) {
++        this.worldName = worldName;
++        this.config = TacoSpigotConfig.config;
++        init();
++    }
++
++    public void init() {
++        this.verbose = getBoolean("verbose", true);
++
++        log("-------- World Settings For [" + worldName + "] --------");
++        TacoSpigotConfig.readConfig(TacoSpigotWorldConfig.class, this);
++    }
++
++    private void log(String s) {
++        if (verbose) {
++            Bukkit.getLogger().info(s);
++        }
++    }
++
++    private void set(String path, Object val) {
++        config.set("world-settings.default." + path, val);
++    }
++
++    private boolean getBoolean(String path, boolean def) {
++        config.addDefault("world-settings.default." + path, def);
++        return config.getBoolean("world-settings." + worldName + "." + path, config.getBoolean("world-settings.default." + path));
++    }
++
++    private double getDouble(String path, double def) {
++        config.addDefault("world-settings.default." + path, def);
++        return config.getDouble("world-settings." + worldName + "." + path, config.getDouble("world-settings.default." + path));
++    }
++
++    private int getInt(String path, int def) {
++        config.addDefault("world-settings.default." + path, def);
++        return config.getInt("world-settings." + worldName + "." + path, config.getInt("world-settings.default." + path));
++    }
++
++    private float getFloat(String path, float def) {
++        return (float) getDouble(path, def);
++    }
++
++    private <T> List getList(String path, T def) {
++        config.addDefault("world-settings.default." + path, def);
++        return config.getList("world-settings." + worldName + "." + path, config.getList("world-settings.default." + path));
++    }
++
++    private String getString(String path, String def) {
++        config.addDefault("world-settings.default." + path, def);
++        return config.getString("world-settings." + worldName + "." + path, config.getString("world-settings.default." + path));
++    }
++
++}
+diff --git a/src/main/java/net/techcable/tacospigot/function/FunctionalMaps.java b/src/main/java/net/techcable/tacospigot/function/FunctionalMaps.java
+new file mode 100644
+index 00000000..91b34001
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/function/FunctionalMaps.java
+@@ -0,0 +1,28 @@
++package net.techcable.tacospigot.function;
++
++import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
++import net.techcable.tacospigot.ArrayMap;
++
++import javax.annotation.ParametersAreNonnullByDefault;
++import java.util.Map;
++import java.util.function.ObjIntConsumer;
++
++import static com.google.common.base.Preconditions.*;
++
++@ParametersAreNonnullByDefault
++public class FunctionalMaps {
++    public static <V> void forEachPrimative(Int2ObjectMap<V> map, ObjIntConsumer<V> action) {
++        if (map instanceof ArrayMap) {
++            ((ArrayMap<V>) checkNotNull(map, "Null map")).forEachPrimative(action);
++        } else {
++            defaultForEachPrimative(map, action);
++        }
++    }
++
++    private static <V> void defaultForEachPrimative(Int2ObjectMap<V> map, ObjIntConsumer<V> action) {
++        for (Map.Entry<Integer, V> entry : map.entrySet()) {
++            action.accept(entry.getValue(), entry.getKey());
++        }
++    }
++
++}
+diff --git a/src/main/java/net/techcable/tacospigot/function/ObjIntBiFunction.java b/src/main/java/net/techcable/tacospigot/function/ObjIntBiFunction.java
+new file mode 100644
+index 00000000..87a50a3d
+--- /dev/null
++++ b/src/main/java/net/techcable/tacospigot/function/ObjIntBiFunction.java
+@@ -0,0 +1,6 @@
++package net.techcable.tacospigot.function;
++
++@FunctionalInterface
++public interface ObjIntBiFunction<T, R> {
++    public R apply(T t, int i);
++}
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 051accfa..e3463347 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -793,6 +793,7 @@ public final class CraftServer implements Server {
+ 
+         org.spigotmc.SpigotConfig.init((File) console.options.valueOf("spigot-settings")); // Spigot
+         com.destroystokyo.paper.PaperConfig.init((File) console.options.valueOf("paper-settings")); // Paper
++        net.techcable.tacospigot.TacoSpigotConfig.init((File) console.options.valueOf("taco-settings")); // TacoSpigot
+         for (WorldServer world : console.getWorlds()) {
+             world.worldData.setDifficulty(difficulty);
+             world.setSpawnFlags(monsters, animals);
+@@ -809,6 +810,7 @@ public final class CraftServer implements Server {
+             }
+             world.spigotConfig.init(); // Spigot
+             world.paperConfig.init(); // Paper
++            world.tacoConfig.init(); // TacoSpigot
+         }
+ 
+         Plugin[] pluginClone = pluginManager.getPlugins().clone(); // Paper
+diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
+index 2d5167eb..75cc60c8 100644
+--- a/src/main/java/org/bukkit/craftbukkit/Main.java
++++ b/src/main/java/org/bukkit/craftbukkit/Main.java
+@@ -15,6 +15,12 @@ import joptsimple.OptionParser;
+ import joptsimple.OptionSet;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecrell.terminalconsole.TerminalConsoleAppender; // Paper
++// TacoSpigot start
++import net.techcable.tacospigot.TacoVersionInfo;
++import net.techcable.tacospigot.UnknownVersionException;
++import net.techcable.tacospigot.VersionDifference;
++import net.techcable.tacospigot.VersioningException;
++// TacoSpigot end
+ 
+ public class Main {
+     public static boolean useJline = true;
+@@ -144,6 +150,14 @@ public class Main {
+                         .defaultsTo("Unknown Server")
+                         .describedAs("Name");
+                 // Paper end
++
++                // TacoSpigot start
++                acceptsAll(asList("taco", "taco-settings"), "File for tacospigot settings")
++                        .withRequiredArg()
++                        .ofType(File.class)
++                        .defaultsTo(new File("taco.yml"))
++                        .describedAs("Yml File");
++                // TacoSpigot end
+             }
+         };
+ 
+@@ -211,6 +225,8 @@ public class Main {
+                     System.setProperty(TerminalConsoleAppender.JLINE_OVERRIDE_PROPERTY, "false"); // Paper
+                 }
+ 
++                // TacoSpigot start - Actually check if the version is outdated
++                /*
+                 if (Main.class.getPackage().getImplementationVendor() != null && System.getProperty("IReallyKnowWhatIAmDoingISwear") == null) {
+                     Date buildDate = new SimpleDateFormat("yyyyMMdd-HHmm").parse(Main.class.getPackage().getImplementationVendor());
+ 
+@@ -225,6 +241,42 @@ public class Main {
+                         // Paper End
+                     }
+                 }
++                */
++                // NOTE: Can't use TacoVersioning.currentVersion() since Bukkit.getVersion()
++                TacoVersionInfo currentVersion = TacoVersionInfo.parse(CraftServer.class.getPackage().getImplementationVersion());
++                VersionDifference versionDifference = null;
++                boolean isCustom = currentVersion.isCustom();
++                try {
++                    versionDifference = currentVersion.compareToLatest();
++                } catch (UnknownVersionException e) {
++                    isCustom = true;
++                } catch (VersioningException | IOException e) {
++                    System.err.println("WARNING: Unable to fetch latest version info!");
++                    e.printStackTrace();
++                }
++                if (isCustom) {
++                    System.err.println("*** Warning, this build (" + currentVersion + ") is custom ***");
++                    System.err.println("*** No support will be offered by the Volcano or TacoSpigot authors! ***");
++                    System.err.println("*** Unless this is intended, please download a new build from https://dev.matrixdevteam.ml/ci/job/Volcano ***");
++                    System.err.println("*** Server will start in 5 seconds ***");
++                    Thread.sleep(TimeUnit.SECONDS.toMillis(5));
++                } else if (versionDifference != null) {
++                    if (versionDifference.isOutdated()) {
++                        System.err.println("*** Warning, this build (" + currentVersion + ") is outdated ***");
++                        System.err.println("*** It is " + versionDifference + " the latest version! ***");
++                        System.err.println("*** No support will be offered by the Volcano or TacoSpigot authors! ***");
++                        System.err.println("*** Please download a new build from https://dev.matrixdevteam.ml/ci/job/Volcano ***");
++                        System.err.println("*** Server will start in 15 seconds ***");
++                        Thread.sleep(TimeUnit.SECONDS.toMillis(15));
++                    } else if (!versionDifference.isIdentical()) {
++                        System.err.println("*** Warning, this build (" + currentVersion + ") isn't the latest ***");
++                        System.err.println("*** It is " + versionDifference + " the latest version! ***");
++                        System.err.println("*** Unless this is intended, please download a new build from https://dev.matrixdevteam.ml/ci/job/Volcano ***");
++                        System.err.println("*** Server will start in 5 seconds ***");
++                        Thread.sleep(TimeUnit.SECONDS.toMillis(5));
++                    }
++                }
++                // TacoSpigot end
+ 
+                 // Paper start - Log Java and OS versioning to help with debugging plugin issues
+                 java.lang.management.RuntimeMXBean runtimeMX = java.lang.management.ManagementFactory.getRuntimeMXBean();
+@@ -239,6 +291,7 @@ public class Main {
+                 }
+                 // Paper end
+ 
++                net.techcable.tacospigot.TacoSpigotConfig.init((File) options.valueOf("taco-settings")); // TacoSpigot - initialize before library loading so we can access while loading
+                 System.out.println("Loading libraries, please wait...");
+                 MinecraftServer.main(options);
+             } catch (Throwable t) {
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index eb5971ac..2011de07 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -1576,11 +1576,16 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+ 
+     @Override
+     public int getNoDamageTicks() {
++        // TacoSpigot start - fix incorrect calculation of getNoDamageTicks
++        /*
+         if (getHandle().invulnerableTicks > 0) {
+             return Math.max(getHandle().invulnerableTicks, getHandle().noDamageTicks);
+         } else {
+             return getHandle().noDamageTicks;
+         }
++        */
++        return Math.max(getHandle().invulnerableTicks, Math.max(0, getHandle().noDamageTicks - getHandle().maxNoDamageTicks / 2));
++        // TacoSpigot end
+     }
+ 
+     @Override
+diff --git a/src/main/java/org/spigotmc/AsyncCatcher.java b/src/main/java/org/spigotmc/AsyncCatcher.java
+index e44c2301..3fd6aebe 100644
+--- a/src/main/java/org/spigotmc/AsyncCatcher.java
++++ b/src/main/java/org/spigotmc/AsyncCatcher.java
+@@ -2,6 +2,13 @@ package org.spigotmc;
+ 
+ import net.minecraft.server.MinecraftServer;
+ 
++// TacoSpigot start
++import com.google.common.collect.ForwardingList;
++import com.google.common.collect.ForwardingSet;
++import java.util.List;
++import java.util.Set;
++// TacoSpigot end
++
+ public class AsyncCatcher
+ {
+ 
+@@ -12,7 +19,30 @@ public class AsyncCatcher
+     {
+         if ( enabled && Thread.currentThread() != MinecraftServer.getServer().primaryThread )
+         {
+-            throw new IllegalStateException( "Asynchronous " + reason + "!" );
++            MinecraftServer.LOGGER.warn(reason + " called async on " + Thread.currentThread().getName()); // TacoSpigot - log
++            throw new IllegalStateException( "Asynchronous " + reason + " on thread " + Thread.currentThread().getName() + "!" ); // TacoSpigot - give thread
+         }
+     }
++
++    // TacoSpigot start - safety wrappers
++    public static <E> List<E> catchAsyncUsage(List<E> list, String msg) {
++        return new ForwardingList<E>() {
++            @Override
++            protected List<E> delegate() {
++                AsyncCatcher.catchOp(msg);
++                return list;
++            }
++        };
++    }
++
++    public static <E> Set<E> catchAsyncUsage(Set<E> set, String msg) {
++        return new ForwardingSet<E>() {
++            @Override
++            protected Set<E> delegate() {
++                AsyncCatcher.catchOp(msg);
++                return set;
++            }
++        };
++    }
++    // TacoSpigot end
+ }
+diff --git a/src/test/java/net/techcable/tacospigot/ImmutableArrayMapTest.java b/src/test/java/net/techcable/tacospigot/ImmutableArrayMapTest.java
+new file mode 100644
+index 00000000..bb875778
+--- /dev/null
++++ b/src/test/java/net/techcable/tacospigot/ImmutableArrayMapTest.java
+@@ -0,0 +1,108 @@
++package net.techcable.tacospigot;
++
++import com.google.common.collect.ImmutableList;
++import com.google.common.collect.ImmutableMap;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.junit.runners.Parameterized;
++
++import java.util.Random;
++
++import static org.junit.Assert.*;
++
++@RunWith(Parameterized.class)
++public class ImmutableArrayMapTest {
++    private final ImmutableMap<Integer, String> expected;
++    private final ImmutableArrayMap<Integer, String> actual;
++    public ImmutableArrayMapTest(ImmutableMap<Integer, String> data) {
++        this.expected = data;
++        this.actual = new ImmutableArrayMap<>(Integer::intValue, Integer::valueOf, data);
++    }
++
++    @Test
++    public void testSize() {
++        assertEquals(expected.size(), actual.size());
++    }
++
++    @Test
++    public void testGets() {
++        expected.forEach((key, expectedValue) -> {
++            String actualValue = this.actual.get(key);
++            if (!actualValue.equalsIgnoreCase(expectedValue)) {
++                fail(key + " should be " + expectedValue + ", not " + actualValue);
++            }
++        });
++    }
++
++    @Test
++    public void testNotContainsRandom() {
++        new Random().ints(0, 10_000)
++                .filter((key) -> !expected.containsKey(key))
++                .limit(2500)
++                .forEach((int key) -> {
++                    String value = actual.get(key);
++                    if (value != null) {
++                        fail("Map shouldn't contain " + key + ": " + value);
++                    }
++                });
++    }
++
++    @Parameterized.Parameters
++    public static ImmutableList<ImmutableMap<Integer, String>> data() {
++        return ImmutableList.of(
++                // Entirely sparse ids
++                ImmutableMap.of(
++                        100, "bob",
++                        400, "lava",
++                        1000, "bananas",
++                        2000, "love"
++                ),
++                ImmutableMap.of(
++                        1000, "bamboo",
++                        500, "eats",
++                        7000, "leaves",
++                        400, "panda"
++                ),
++                // Sparse...dense...sparse
++                ImmutableMap.<Integer, String>builder()
++                        .put(50, "potato")
++                        .put(500, "banana")
++                        .put(800, "lava")
++                        .put(801, "loves")
++                        .put(805, "you")
++                        .put(811, "too")
++                        .put(5000, "baby")
++                        .build(),
++                // Sparse..dense
++                ImmutableMap.<Integer, String>builder()
++                        .put(407, "bananas")
++                        .put(408, "need")
++                        .put(400, "love")
++                        .put(409, "too!")
++                        .put(5000, "good")
++                        .put(8000, "for you!")
++                        .build(),
++                // All dense
++                ImmutableMap.<Integer, String>builder()
++                        .put(409, "Do you")
++                        .put(400, "want to")
++                        .put(309, "build a")
++                        .put(405, "snowman?")
++                        .put(411, "or ride")
++                        .put(412, "our bike")
++                        .put(308, "around")
++                        .put(407, "the halls?")
++                        .build(),
++                // Perfectly sequential (but randomly sorted)
++                ImmutableMap.<Integer, String>builder()
++                        .put(408, "fifteen")
++                        .put(411, "minutes")
++                        .put(406, "could")
++                        .put(407, "save you")
++                        .put(409, "fifteen")
++                        .put(410, "percent or more")
++                        .put(405, "on car insurance")
++                        .build()
++        );
++    }
++}
+-- 
+2.21.0.windows.1
+
