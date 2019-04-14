@@ -1,18 +1,18 @@
-From 7627e39cd9e9874cb28255ce124ceed46eaa2bd7 Mon Sep 17 00:00:00 2001
+From a25e56b506a1e6ca6292002d67924dba7fb6e5df Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Sun, 14 Apr 2019 08:46:54 -0400
 Subject: [PATCH] Add TacoSpigot improvements
 
 ---
- .../techcable/tacospigot/TacoVersionInfo.java | 85 +++++++++++++++++++
+ .../techcable/tacospigot/TacoVersionInfo.java | 91 +++++++++++++++++++
  .../techcable/tacospigot/TacoVersioning.java  | 23 +++++
  .../tacospigot/UnknownVersionException.java   | 14 +++
- .../tacospigot/VersionDifference.java         | 57 +++++++++++++
+ .../tacospigot/VersionDifference.java         | 62 +++++++++++++
  .../tacospigot/VersionDifferenceType.java     |  8 ++
  .../tacospigot/VersioningException.java       | 11 +++
  .../event/entity/ArrowCollideEvent.java       | 61 +++++++++++++
  .../command/defaults/VersionCommand.java      | 37 ++++++--
- 8 files changed, 290 insertions(+), 6 deletions(-)
+ 8 files changed, 301 insertions(+), 6 deletions(-)
  create mode 100644 src/main/java/net/techcable/tacospigot/TacoVersionInfo.java
  create mode 100644 src/main/java/net/techcable/tacospigot/TacoVersioning.java
  create mode 100644 src/main/java/net/techcable/tacospigot/UnknownVersionException.java
@@ -23,10 +23,10 @@ Subject: [PATCH] Add TacoSpigot improvements
 
 diff --git a/src/main/java/net/techcable/tacospigot/TacoVersionInfo.java b/src/main/java/net/techcable/tacospigot/TacoVersionInfo.java
 new file mode 100644
-index 00000000..954de069
+index 00000000..71ba26c3
 --- /dev/null
 +++ b/src/main/java/net/techcable/tacospigot/TacoVersionInfo.java
-@@ -0,0 +1,85 @@
+@@ -0,0 +1,91 @@
 +package net.techcable.tacospigot;
 +
 +import com.google.common.base.Charsets;
@@ -73,10 +73,16 @@ index 00000000..954de069
 +    }
 +
 +    public boolean isCustom() {
-+        return switch (serverType) {
-+            case "Volcano", "TacoSpigot", "Paper", "Spigot", "Bukkit" -> false;
-+            default -> true;
-+        };
++        switch (serverType) {
++            case "Volcano":
++            case "TacoSpigot":
++            case "Paper":
++            case "Spigot":
++            case "Bukkit":
++                return false;
++            default:
++                return true;
++        }
 +    }
 +
 +    public VersionDifference compareToLatest() throws IOException, VersioningException {
@@ -163,10 +169,10 @@ index 00000000..28d3aabe
 +}
 diff --git a/src/main/java/net/techcable/tacospigot/VersionDifference.java b/src/main/java/net/techcable/tacospigot/VersionDifference.java
 new file mode 100644
-index 00000000..4f388eb8
+index 00000000..a7ba9ad2
 --- /dev/null
 +++ b/src/main/java/net/techcable/tacospigot/VersionDifference.java
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,62 @@
 +package net.techcable.tacospigot;
 +
 +public class VersionDifference {
@@ -214,13 +220,18 @@ index 00000000..4f388eb8
 +
 +    @Override
 +    public String toString() {
-+        return switch (differenceType) {
-+            case DIVERGED -> behindBy + " commits behind, " + aheadBy + " commits ahead of";
-+            case BEHIND -> behindBy + " commits behind";
-+            case AHEAD -> aheadBy + " ahead of";
-+            case IDENTICAL -> "identical to";
-+            default -> throw new AssertionError(differenceType);
-+        };
++        switch (differenceType) {
++            case DIVERGED:
++                return behindBy + " commits behind, " + aheadBy + " commits ahead of";
++            case BEHIND:
++                return behindBy + " commits behind";
++            case AHEAD:
++                return aheadBy + " ahead of";
++            case IDENTICAL:
++                return "identical to";
++            default:
++                throw new AssertionError(differenceType);
++        }
 +    }
 +
 +}
