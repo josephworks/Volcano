@@ -1,4 +1,4 @@
-From 784aa310ddbb7419538fa3725c86ed268891221f Mon Sep 17 00:00:00 2001
+From 3e0c4ba4d27c4b3b367ceb80c2342e938482561f Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Sun, 14 Apr 2019 08:47:25 -0400
 Subject: [PATCH] Add TacoSpigot improvements
@@ -662,7 +662,7 @@ index d20f6ac7..7864fc25 100644
          this.ticksPerAnimalSpawns = this.getServer().getTicksPerAnimalSpawns(); // CraftBukkit
 diff --git a/src/main/java/net/techcable/tacospigot/ArrayMap.java b/src/main/java/net/techcable/tacospigot/ArrayMap.java
 new file mode 100644
-index 00000000..6d19feec
+index 00000000..ce4b4595
 --- /dev/null
 +++ b/src/main/java/net/techcable/tacospigot/ArrayMap.java
 @@ -0,0 +1,211 @@
@@ -703,7 +703,7 @@ index 00000000..6d19feec
 +
 +    @Override
 +    public ObjectSet<Int2ObjectMap.Entry<V>> int2ObjectEntrySet() {
-+        return entrySet != null ? entrySet : (entrySet = new AbstractObjectSet<>() {
++        return entrySet != null ? entrySet : (entrySet = new AbstractObjectSet<Int2ObjectMap.Entry<V>>() {
 +            @Override
 +            @Nonnull
 +            public ObjectIterator<Int2ObjectMap.Entry<V>> iterator() {
