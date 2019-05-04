@@ -1,0 +1,25 @@
+From 9030708ad715e6b69d5bb710fcb03348c27a1edc Mon Sep 17 00:00:00 2001
+From: GMatrixGames <gmatrixgames@hotmail.com>
+Date: Sat, 4 May 2019 10:48:52 -0400
+Subject: [PATCH] Fix volcano command registration
+
+---
+ src/main/java/org/lavapowered/volcano/VolcanoConfig.java | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/main/java/org/lavapowered/volcano/VolcanoConfig.java b/src/main/java/org/lavapowered/volcano/VolcanoConfig.java
+index 18540126c..9771344fa 100644
+--- a/src/main/java/org/lavapowered/volcano/VolcanoConfig.java
++++ b/src/main/java/org/lavapowered/volcano/VolcanoConfig.java
+@@ -56,7 +56,7 @@ public class VolcanoConfig {
+ 
+     public static void registerCommands() {
+         for (Map.Entry<String, Command> entry : commands.entrySet()) {
+-            MinecraftServer.getServer().server.getCommandMap().register(entry.getKey(), "Paper", entry.getValue());
++            MinecraftServer.getServer().server.getCommandMap().register(entry.getKey(), "Volcano", entry.getValue());
+         }
+     }
+ 
+-- 
+2.21.0
+
