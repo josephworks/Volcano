@@ -1,30 +1,8 @@
-# EmpireCraft #
-## What ##
-EmpireCraft is a fork of Spigot used by the [Empire Minecraft](http://ref.emc.gs/Aikar?gam=EmpireCraft) Server.
-
-It contains many gameplay changes to suit our server, but more importantly, contains new performance improvements pending
-testing to be contributed to Spigot / Sponge.
+# Volcano
+## What
+Volcano is a fork of [EmpireCraft](https://github.com/starlis/empirecraft) Server Software, aiming at Multitreading and new performance improvements pending for testing to be contributed to Spigot / Sponge.
 
 We also have many API's that we privately use but choose to not publicly PR them upstream, see below for why.
-
-## Why we don't release all API ##
-API's are tough to design. In public projects such as Bukkit, Spigot, Sponge etc, once an API is commited. It's almost
-forever. You can't go breaking it without solid justification. This is the politics game.
-
-With that in mind, much thought has to be given to the API in now and future use cases and applications to ensure it can
-be extended without breaking.
-
-This is a lot of politics that we don't have time in our lives to deal with.
-
-Therefor, we write API's to OUR base needs, which is often not 'complete' or 'up to style guidelines' of upstream repositories.
-We do not have the time to write code that we personally do not need for these API's.
-
-We also want to retain the ability to make breaking changes to the API if it results in a better way to do things or
-performance improvements.
-
-By contributing it upstream, we would give up that power.
-
-So that is why we have many extremely useful API's that are not PR'd upstream
 
 ## LICENSE / Support / Usage of Patches ##
 All patches written by Aikar, Starlis LLC, Contractors of Starlis LLC that has been included inside of EmpireCraft
