@@ -1,53 +1,45 @@
 #!/bin/bash
+cd $(dirname $SOURCE)/../
+basedir=$(pwd -P)
 
-pushd Paper
+## CHANGE THESE TO YOUR REPOS
+PAPER_BRANCH="ver/1.14"
 
-(
-set -e
-PS1="$"
-basedir="$(cd "$1" && pwd -P)"
-workdir="$basedir/work"
-minecraftversion=$(cat work/BuildData/info.json | grep minecraftVersion | cut -d '"' -f 4)
-spigotdecompiledir="$workdir/Minecraft/$minecraftversion/spigot"
-nms="$spigotdecompiledir/net/minecraft/server"
-cb="src/main/java/net/minecraft/server"
-gitcmd="git -c commit.gpgsign=false"
+function cleanupPatches {
+	cd "$1"
+	for patch in *.patch; do
+		gitver=$(tail -n 2 $patch | grep -ve "^$" | tail -n 1)
+		diffs=$(git diff --staged $patch | grep -E "^(\+|\-)" | grep -Ev "(From [a-z0-9]{32,}|\-\-\- a|\+\+\+ b|.index|Date\: )")
 
-patch=$(which patch 2>/dev/null)
-if [[ "x$patch" == "x" ]]; then
-    patch=${basedir}/hctap.exe
-fi
+		testver=$(echo "$diffs" | tail -n 2 | grep -ve "^$" | tail -n 1 | grep "$gitver")
+		if [ "x$testver" != "x" ]; then
+			diffs=$(echo "$diffs" | head -n -2)
+		fi
 
-echo "Applying CraftBukkit patches to NMS..."
-cd "$workdir/CraftBukkit"
-${gitcmd} checkout -B patched HEAD >/dev/null 2>&1
-rm -rf "$cb"
-mkdir -p "$cb"
-for file in $(ls nms-patches)
-do
-    patchFile="nms-patches/$file"
-    file="$(echo "$file" | cut -d. -f1).java"
-    cp "$nms/$file" "$cb/$file"
-done
-${gitcmd} add src
-${gitcmd} commit -m "Minecraft $ $(date)" --author="Auto <auto@mated.null>"
+		if [ "x$diffs" == "x" ] ; then
+			git reset HEAD $patch >/dev/null
+			git checkout -- $patch >/dev/null
+		fi
+	done
+}
 
-for file in $(ls nms-patches)
-do
-    patchFile="nms-patches/$file"
-    file="$(echo "$file" | cut -d. -f1).java"
+function pushRepo {
+	echo "Pushing - $1 ($3) to $2"
+	(
+		cd "$1"
+		git remote rm pd-push > /dev/null 2>&1
+		git remote add pd-push $2 >/dev/null 2>&1
+		git push pd-push $3 -f
+	)
+}
 
-    echo "Patching $file < $patchFile"
-    set +e
-    sed -i 's/\r//' "$nms/$file" > /dev/null
-    set -e
+function basedir {
+	cd "$basedir"
+}
 
-    "$patch" -s -d src/main/java/ "net/minecraft/server/$file" < "$patchFile"
-done
-
-${gitcmd} add src >/dev/null 2>&1
-${gitcmd} commit -m "CraftBukkit $ $(date)" --author="Auto <auto@mated.null>" >/dev/null 2>&1
-${gitcmd} checkout -f HEAD~2 >/dev/null 2>&1
-
-popd 
-)
+function gethead {
+	(
+		cd "$1"
+		git log -1 --oneline
+	)
+}

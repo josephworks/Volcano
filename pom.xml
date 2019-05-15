@@ -6,20 +6,26 @@
     <artifactId>volcano-parent</artifactId>
     <version>dev-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Volcano (Parent)</name>
+    
+    <name>Volcano-Parent</name>
 
     <properties>
         <skipTests>true</skipTests>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <repositories>
         <repository>
-            <id>empireminecraft</id>
-            <url>https://repo.aikar.co/content/groups/public/</url>
+            <id>md_5-releases</id>
+            <url>http://repo.md-5.net/content/repositories/releases/</url>
         </repository>
         <repository>
             <id>aikar</id>
-            <url>https://repo.aikar.co/content/repositories/aikar/</url>
+            <url>http://ci.emc.gs/nexus/content/repositories/aikar/</url>
+        </repository>
+        <repository>
+            <id>destroystokyo-releases</id>
+            <url>https://repo.destroystokyo.com/repository/maven-releases/</url>
         </repository>
     </repositories>
 
@@ -32,4 +38,5 @@
         <module>Volcano-API</module>
         <module>Volcano-Server</module>
     </modules>
+    
 </project>

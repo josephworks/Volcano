@@ -1,10 +1,16 @@
 #!/bin/bash
+# get base dir regardless of execution location
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+	SOURCE="$(readlink "$SOURCE")"
+	[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+. $(dirname $SOURCE)/init.sh
 
 PS1="$"
 basedir=`pwd`
 echo "Rebuilding patch files from current fork state..."
-git config core.safecrlf false
-
 function cleanupPatches {
     cd "$1"
     for patch in *.patch; do
@@ -22,7 +28,7 @@ function cleanupPatches {
             git checkout -- $patch >/dev/null
         fi
     done
-}
+)
 
 function savePatches {
     what=$1
@@ -37,8 +43,5 @@ function savePatches {
     echo "  Patches saved for $what to $what_name-Patches/"
 }
 
-if [ "$1" == "clean" ]; then
-	rm -rf Paper-*-Patches
-fi
 savePatches Paper/Paper-API Volcano-API
 savePatches Paper/Paper-Server Volcano-Server

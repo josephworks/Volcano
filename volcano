@@ -1,108 +1,133 @@
 #!/usr/bin/env bash
 
+# resolve shell-specifics
+case "$(echo "$SHELL" | sed 's|/usr||g')" in
+    "/bin/zsh")
+        RCPATH="$HOME/.zshrc"
+        SOURCE="${BASH_SOURCE[0]:-${(%):-%N}}"
+    ;;
+    *)
+        RCPATH="$HOME/.bashrc"
+        if [[ -f "$HOME/.bash_aliases" ]]; then
+            RCPATH="$HOME/.bash_aliases"
+        fi
+        SOURCE="${BASH_SOURCE[0]}"
+    ;;
+esac
+
 # get base dir regardless of execution location
-SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-	SOURCE="$(readlink "$SOURCE")"
-	[[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 SOURCE=$([[ "$SOURCE" = /* ]] && echo "$SOURCE" || echo "$PWD/${SOURCE#./}")
 basedir=$(dirname "$SOURCE")
-gitcmd="git -c commit.gpgsign=false"
-. $basedir/scripts/init.sh
+
+. $basedir/scripts/functions.sh
 
 case "$1" in
-	"rb" | "rbp" | "rebuild")
-	(
-		set -e
-		cd "$basedir"
-		scripts/rebuildPatches.sh 
-	)
-	;;
-	"clean" | "c")
-	(
+    "rb" | "rbp" | "rebuild")
+    (
         set -e
         cd "$basedir"
-        scripts/rebuildPatches.sh "clean"
-	)
-	;;
-	"p" | "patch" | "apply")
-	(
-		set -e
-		cd "$basedir"
-		scripts/applyPatches.sh "$basedir"
-	)
-	;;
-	"b" | "bu" | "build")
-	(
-		basedir
-		mvn -N install
-		cd Volcano-API
-		mvn clean install && cd ../Volcano-Server && mvn clean install
-	)
-	;;
-	"d" | "de" | "deploy")
-	(
-		basedir
-		mvn -N install
-		cd Volcano-API
-		mvn clean deploy && cd ../Volcano-Server && mvn clean install
-	)
-	;;
-	"up" | "upstream")
-	(
-		cd "$basedir"
-		scripts/upstreamMerge.py
-	)
-	;;
-	"r" | "root")
-		cd "$basedir"
-	;;
-	"a" | "api")
-		cd "$basedir/Volcano-API"
-	;;
-	"s" | "server")
-		cd "$basedir/Volcano-Server"
-	;;
-	"j" | "jar")
-		cd "$basedir"
-		scripts/build.sh "$basedir"
-	;;
-	"e" | "edit")
-        source "$basedir/scripts/functions.sh"
+        scripts/rebuildPatches.sh "$basedir"
+    )
+    ;;
+    "p" | "patch" | "apply")
+    (
+        set -e
+        cd "$basedir"
+        scripts/apply.sh "$basedir"
+    )
+    ;;
+    "up" | "upstream")
+    (
+        set -e
+        cd "$basedir"
+        git submodule update --init
+        scripts/upstream.sh "$2" "$3"
+    )
+    ;;
+    "nuke" | "reset")
+    (
+        cd "$basedir"
+        rm Paper -Rf
+        rm Volcano-Server -Rf
+        rm Volcano-API -Rf
+    )
+    ;;
+    "ci" | "jenkins")
+    (
+        cd "$basedir"
+        rm Paper -Rf
+        rm Volcano-Server -Rf
+        rm Volcano-API -Rf
+        git submodule update --init
+        scripts/upstream.sh
+        scripts/apply.sh
+    )
+    ;;
+    "jar" | "j")
+    (
+        set -e
+        cd "$basedir"
+        git submodule update --init
+        scripts/upstream.sh "$2" "$3"
+        scripts/apply.sh
+        mvn clean install
+    )
+    ;;
+    "nukeall" | "cinuke")
+    (
+        rm Paper -Rf
+        rm Volcano-Server -Rf
+        rm Volcano-API -Rf
+        rm mc-dev -Rf
+    )
+    ;;
+    "r" | "root")
+        cd "$basedir"
+    ;;
+    "a" | "api")
+        cd "$basedir/Volcano-API"
+    ;;
+    "s" | "server")
+        cd "$basedir/Volcano-Server"
+    ;;
+    "e" | "edit")
         case "$2" in
             "s" | "server")
-            export PAPER_LAST_EDIT="$basedir/Volcano-Server"
+            export LAST_EDIT="$basedir/Volcano-Server"
             cd "$basedir/Volcano-Server"
             (
                 set -e
 
                 volcanostash
-                $gitcmd rebase -i upstream/upstream
-                voclanounstash
+                git rebase -i upstream/upstream
+                volcanounstash
             )
             ;;
             "a" | "api")
-            export VOLCANO_LAST_EDIT="$basedir/Volcano-API"
+            export LAST_EDIT="$basedir/Volcano-API"
             cd "$basedir/Volcano-API"
             (
                 set -e
 
                 volcanostash
-                $gitcmd rebase -i upstream/upstream
+                git rebase -i upstream/upstream
                 volcanounstash
             )
             ;;
             "c" | "continue")
-            cd "$VOLCANO_LAST_EDIT"
-            unset VOLCANO_LAST_EDIT
+            cd "$LAST_EDIT"
+            unset LAST_EDIT
             (
                 set -e
 
-                $gitcmd add .
-                $gitcmd commit --amend
-                $gitcmd rebase --continue
+                git add .
+                git commit --amend
+                git rebase --continue
 
                 cd "$basedir"
                 scripts/rebuildPatches.sh "$basedir"
@@ -113,26 +138,31 @@ case "$1" in
             ;;
         esac
     ;;
-	*)
-		echo "Volcano build tool command. This provides a variety of commands to build and manage the Volcano build"
-		echo "environment. View below for details."
-		echo ""
-		echo " Normal commands:"
-		echo "  * rb, rebuild  | Rebuild patches, can be called from anywhere."
-		echo "  * p, patch     | Apply all patches to top of Paper without building it. Can be run from anywhere."
-		echo "  * up, upstream | Build Volcano upstream, pass arg up to update paper. Can be run from anywhere."
-		echo "  * b, build     | Build API and Server but no deploy. Can be ran anywhere."
-		echo "  * d, deploy    | Build and Deploy API jar and build Server. Can be ran anywhere."
-		echo ""
-		echo " These commands require the setup command before use:"
-		echo "  * r, root      | Change directory to the root of the project."
-		echo "  * a. api       | Move to the Volcano-API directory."
-		echo "  * s, server    | Move to the Volcano-Server directory."
-		echo "  * e, edit      | Use to edit a specific patch, give it the argument \"server\" or \"api\""
-		echo "                 | respectively to edit the correct project. Use the argument \"continue\" after"
-		echo "                 | the changes have been made to finish and rebuild patches. Can be called from anywhere."
-	;;
+    *)
+        echo "Volcano build tool command. This provides a variety of commands to build and manage the Volcano build environment."
+        echo ""
+        echo " Commands:"
+        echo "  * rb, rebuild       | Rebuild patches, can be called from anywhere."
+        echo "  * p, patch, apply   | Apply all patches to the project without building it. Can be run from anywhere."
+        echo "  * up, upstream      | Update the Paper Submodule" 
+        echo "  * init, submodules  | Initilize the Paper Submodule"
+        echo "  * push              | Push the project to the Remote"
+        echo "  * nuke, reset       | Reset the Entire Project - WARNING: THIS WILL DELETE EVERYTHING!"
+        echo ""
+        echo " Commands used for development / patching:"
+        echo "  * r, root           | Change directory to the root of the project."
+        echo "  * a. api            | Move to the Volcano-API directory."
+        echo "  * s, server         | Move to the Volcano-Server directory."
+        echo "  * e, edit           | Use to edit a specific patch, give it the argument \"server\" or \"api\""
+        echo "                      | respectively to edit the correct project. Use the argument \"continue\" after"
+        echo "                      | the changes have been made to finish and rebuild patches. Can be called from anywhere."
+    ;;
 esac
 
-unset -f paperstash
-unset -f paperunstash
+unset RCPATH
+unset SOURCE
+unset basedir
+unset -f color
+unset -f colorend
+unset -f volcanostash
+unset -f volcanounstash
