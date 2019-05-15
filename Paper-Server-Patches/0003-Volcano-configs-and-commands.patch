@@ -1,26 +1,11 @@
-From 785014b3fa944f444fb4cd985fa8718469b2a24c Mon Sep 17 00:00:00 2001
+From fc4f274a4467c8461f659ea72f65206d785bb275 Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Tue, 14 May 2019 23:11:06 -0400
 Subject: [PATCH] Volcano configs and commands
 
----
- src/main/java/net/minecraft/server/World.java |   3 +-
- .../org/bukkit/craftbukkit/CraftServer.java   |   3 +
- .../java/org/bukkit/craftbukkit/Main.java     |   8 ++
- .../lavapowered/volcano/VolcanoConfig.java    | 119 ++++++++++++++++++
- .../volcano/VolcanoWorldConfig.java           |  65 ++++++++++
- .../volcano/commands/PingCommand.java         |  42 +++++++
- .../volcano/commands/UUIDCommand.java         |  65 ++++++++++
- .../volcano/commands/VolcanoCommand.java      | 114 +++++++++++++++++
- 8 files changed, 418 insertions(+), 1 deletion(-)
- create mode 100644 src/main/java/org/lavapowered/volcano/VolcanoConfig.java
- create mode 100644 src/main/java/org/lavapowered/volcano/VolcanoWorldConfig.java
- create mode 100644 src/main/java/org/lavapowered/volcano/commands/PingCommand.java
- create mode 100644 src/main/java/org/lavapowered/volcano/commands/UUIDCommand.java
- create mode 100644 src/main/java/org/lavapowered/volcano/commands/VolcanoCommand.java
 
 diff --git a/src/main/java/net/minecraft/server/World.java b/src/main/java/net/minecraft/server/World.java
-index c04d73e7..45c6883d 100644
+index c04d73e73..45c6883dc 100644
 --- a/src/main/java/net/minecraft/server/World.java
 +++ b/src/main/java/net/minecraft/server/World.java
 @@ -91,8 +91,8 @@ public abstract class World implements IIBlockAccess, GeneratorAccess, AutoClose
@@ -42,7 +27,7 @@ index c04d73e7..45c6883d 100644
          this.world = new CraftWorld((WorldServer) this, gen, env);
          this.ticksPerAnimalSpawns = this.getServer().getTicksPerAnimalSpawns(); // CraftBukkit
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 9b423dea..c2d9e2c5 100644
+index 9b423dea1..c2d9e2c51 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -788,6 +788,7 @@ public final class CraftServer implements Server {
@@ -70,7 +55,7 @@ index 9b423dea..c2d9e2c5 100644
          ignoreVanillaPermissions = commandsConfiguration.getBoolean("ignore-vanilla-permissions");
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index 405ea5c4..f9b933e0 100644
+index 405ea5c46..f9b933e00 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
 @@ -144,6 +144,14 @@ public class Main {
@@ -90,7 +75,7 @@ index 405ea5c4..f9b933e0 100644
  
 diff --git a/src/main/java/org/lavapowered/volcano/VolcanoConfig.java b/src/main/java/org/lavapowered/volcano/VolcanoConfig.java
 new file mode 100644
-index 00000000..9771344f
+index 000000000..9771344fa
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/VolcanoConfig.java
 @@ -0,0 +1,119 @@
@@ -215,7 +200,7 @@ index 00000000..9771344f
 +}
 diff --git a/src/main/java/org/lavapowered/volcano/VolcanoWorldConfig.java b/src/main/java/org/lavapowered/volcano/VolcanoWorldConfig.java
 new file mode 100644
-index 00000000..39273d81
+index 000000000..39273d81b
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/VolcanoWorldConfig.java
 @@ -0,0 +1,65 @@
@@ -286,7 +271,7 @@ index 00000000..39273d81
 +}
 diff --git a/src/main/java/org/lavapowered/volcano/commands/PingCommand.java b/src/main/java/org/lavapowered/volcano/commands/PingCommand.java
 new file mode 100644
-index 00000000..1a5195ca
+index 000000000..1a5195ca1
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/commands/PingCommand.java
 @@ -0,0 +1,42 @@
@@ -334,7 +319,7 @@ index 00000000..1a5195ca
 +}
 diff --git a/src/main/java/org/lavapowered/volcano/commands/UUIDCommand.java b/src/main/java/org/lavapowered/volcano/commands/UUIDCommand.java
 new file mode 100644
-index 00000000..c988a1af
+index 000000000..c988a1afa
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/commands/UUIDCommand.java
 @@ -0,0 +1,65 @@
@@ -405,7 +390,7 @@ index 00000000..c988a1af
 +}
 diff --git a/src/main/java/org/lavapowered/volcano/commands/VolcanoCommand.java b/src/main/java/org/lavapowered/volcano/commands/VolcanoCommand.java
 new file mode 100644
-index 00000000..e3165f74
+index 000000000..e3165f74f
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/commands/VolcanoCommand.java
 @@ -0,0 +1,114 @@

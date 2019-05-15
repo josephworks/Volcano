@@ -1,11 +1,8 @@
-From 8d52fe280259967db0e6168efe4de02c9350209d Mon Sep 17 00:00:00 2001
+From e21a34f782b9f5ff4ab9d22dfc62ee349e617edf Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Tue, 14 May 2019 21:33:54 -0400
 Subject: [PATCH] Versioning
 
----
- .../command/defaults/VersionCommand.java      | 39 ++++++++++++-------
- 1 file changed, 24 insertions(+), 15 deletions(-)
 
 diff --git a/src/main/java/org/bukkit/command/defaults/VersionCommand.java b/src/main/java/org/bukkit/command/defaults/VersionCommand.java
 index ece8d1c8..caa547fe 100644

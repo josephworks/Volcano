@@ -17,7 +17,14 @@ case "$1" in
 	(
 		set -e
 		cd "$basedir"
-		scripts/rebuildPatches.sh "$basedir"
+		scripts/rebuildPatches.sh 
+	)
+	;;
+	"clean" | "c")
+	(
+        set -e
+        cd "$basedir"
+        scripts/rebuildPatches.sh "clean"
 	)
 	;;
 	"p" | "patch" | "apply")
@@ -46,7 +53,7 @@ case "$1" in
 	"up" | "upstream")
 	(
 		cd "$basedir"
-		scripts/upstreamMerge.py "$2"
+		scripts/upstreamMerge.py
 	)
 	;;
 	"r" | "root")

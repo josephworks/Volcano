@@ -1,11 +1,8 @@
-From c8d7ebd15e20318a3af5c4a764764b4f073dc2b4 Mon Sep 17 00:00:00 2001
+From d51f740cd96ab9bf6cf1271c5a2bda5a4a82607c Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Tue, 14 May 2019 21:28:10 -0400
 Subject: [PATCH] POM Changes
 
----
- pom.xml | 13 ++++++-------
- 1 file changed, 6 insertions(+), 7 deletions(-)
 
 diff --git a/pom.xml b/pom.xml
 index dbbb5c72..5cd396be 100644

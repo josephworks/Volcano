@@ -1,12 +1,8 @@
-From 328241d54b6ae0679324c03c63369d9d09548082 Mon Sep 17 00:00:00 2001
+From 8bb0e1e2d167b731b6b6632e9976a06f44d54834 Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Tue, 14 May 2019 21:42:25 -0400
 Subject: [PATCH] ArrowCollideEvent from TacoSpigot
 
----
- .../event/entity/ArrowCollideEvent.java       | 61 +++++++++++++++++++
- 1 file changed, 61 insertions(+)
- create mode 100644 src/main/java/net/techcable/tacospigot/event/entity/ArrowCollideEvent.java
 
 diff --git a/src/main/java/net/techcable/tacospigot/event/entity/ArrowCollideEvent.java b/src/main/java/net/techcable/tacospigot/event/entity/ArrowCollideEvent.java
 new file mode 100644
