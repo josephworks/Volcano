@@ -1,21 +1,66 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-	SOURCE="$(readlink "$SOURCE")"
-	[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-done
-. $(dirname $SOURCE)/init.sh
-
-workdir=$basedir/Paper/work
-minecraftversion=$(cat $basedir/Paper/work/BuildData/info.json | grep minecraftVersion | cut -d '"' -f 4)
-decompiledir=$workdir/Minecraft/$minecraftversion/spigot
-
+(
+set -e
 nms="net/minecraft/server"
 export MODLOG=""
-cd $basedir
+PS1="$"
+basedir="$(cd "$1" && pwd -P)"
+source "$basedir/scripts/functions.sh"
+gitcmd="git -c commit.gpgsign=false"
 
+workdir="$basedir/work"
+minecraftversion=$(cat "$workdir/BuildData/info.json"  | grep minecraftVersion | cut -d '"' -f 4)
+decompiledir="$workdir/Minecraft/$minecraftversion/forge"
+# replace for now
+decompiledir="$workdir/Minecraft/$minecraftversion/spigot"
+
+export importedmcdev=""
+function import {
+	export importedmcdev="$importedmcdev $1"
+	file="${1}.java"
+    target="$basedir/Paper-Server/src/main/java/$nms/$file"
+    base="$decompiledir/$nms/$file"
+
+	if [[ ! -f "$target" ]]; then
+		export MODLOG="$MODLOG  Imported $file from mc-dev\n";
+		echo "Copying $base to $target"
+		cp "$base" "$target" || exit 1
+	else
+	    echo "UN-NEEDED IMPORT: $file"
+	fi
+}
+
+function importLibrary {
+    group=$1
+    lib=$2
+    prefix=$3
+    shift 3
+    for file in "$@"; do
+        file="$prefix/$file"
+        target="$workdir/Spigot/Spigot-Server/src/main/java/${file}"
+        targetdir=$(dirname "$target")
+        mkdir -p "${targetdir}"
+        base="$workdir/Minecraft/$minecraftversion/libraries/${group}/${lib}/$file"
+        if [[ ! -f "$base" ]]; then
+            echo "Missing $base"
+            exit 1
+        fi
+        export MODLOG="$MODLOG  Imported $file from $lib\n";
+        cp "$base" "$target" || exit 1
+    done
+}
+
+(
+	cd Paper/Paper-Server/
+	lastlog=$(${gitcmd} log -1 --oneline)
+	if [[ "$lastlog" = *"mc-dev Imports"* ]]; then
+		${gitcmd} reset --hard HEAD^
+	fi
+)
+
+files=$(cat "Paper-Server-Patches/"* | grep "+++ b/src/main/java/net/minecraft/server/" | sort | uniq | sed 's/\+\+\+ b\/src\/main\/java\/net\/minecraft\/server\///g' | sed 's/.java//g')
+nonnms=$(grep -R "new file mode" -B 1 "Paper-Server-Patches/" | grep -v "new file mode" | grep -oE "net\/minecraft\/server\/.*.java" | grep -oE "[A-Za-z]+?.java$" --color=none | sed 's/.java//g')
 function containsElement {
 	local e
 	for e in "${@:2}"; do
@@ -23,65 +68,30 @@ function containsElement {
 	done
 	return 1
 }
-
-export importedmcdev=""
-function import {
-	if [ -f "$basedir/Paper/Paper-Server/src/main/java/net/minecraft/server/$1.java" ]; then
-		echo "ALREADY IMPORTED $1"
-		return 0
-	fi
-	export importedmcdev="$importedmcdev $1"
-	file="${1}.java"
-	target="$basedir/Paper/Paper-Server/src/main/java/$nms/$file"
-	base="$decompiledir/$nms/$file"
-
-	if [[ ! -f "$target" ]]; then
-		export MODLOG="$MODLOG  Imported $file from mc-dev\n";
-		echo "$(bashColor 1 32) Copying $(bashColor 1 34)$base $(bashColor 1 32)to$(bashColor 1 34) $target $(bashColorReset)"
-		cp "$base" "$target"
-	else
-		echo "$(bashColor 1 33) UN-NEEDED IMPORT STATEMENT:$(bashColor 1 34) $file $(bashColorReset)"
-	fi
-}
-
-(
-	cd Paper/Paper-Server/
-	lastlog=$(git log -1 --oneline)
-	if [[ "$lastlog" = *"Volcano mc-dev Imports"* ]]; then
-		git reset --hard HEAD^
-	fi
-)
-
-
-files=$(cat patches/server/* | grep "+++ b/src/main/java/net/minecraft/server/" | sort | uniq | sed 's/\+\+\+ b\/src\/main\/java\/net\/minecraft\/server\///g' | sed 's/.java//g')
-
-nonnms=$(cat patches/server/* | grep "create mode " | grep -Po "src/main/java/net/minecraft/server/(.*?).java" | sort | uniq | sed 's/src\/main\/java\/net\/minecraft\/server\///g' | sed 's/.java//g')
-
-for f in $files; do
+set +e
+for f in ${files}; do
 	containsElement "$f" ${nonnms[@]}
-	if [ "$?" == "1" ]; then
-		if [ ! -f "$basedir/Paper/Paper-Server/src/main/java/net/minecraft/server/$f.java" ]; then
-			if [ ! -f "$decompiledir/$nms/$f.java" ]; then
-				echo "$(bashColor 1 31) ERROR!!! Missing NMS$(bashColor 1 34) $f $(bashColorReset)";
+	if [[ "$?" == "1" ]]; then
+		if [[ ! -f "$basedir/Paper-Server/src/main/java/net/minecraft/server/$f.java" ]]; then
+			if [[ ! -f "$decompiledir/$nms/$f.java" ]]; then
+				echo "$(color 1 31) ERROR!!! Missing NMS$(color 1 34) $f $(colorend)";
 			else
-				import $f
+				import ${f}
 			fi
 		fi
 	fi
 done
 
-###############################################################################################
-###############################################################################################
-#################### ADD TEMPORARY ADDITIONS HERE #############################################
-###############################################################################################
-###############################################################################################
+set -e
 
-# import Foo
-
-################
 (
 	cd Paper/Paper-Server/
-	rm -rf nms-patches
-	git add src -A
-	echo -e "Volcano mc-dev Imports\n\n$MODLOG" | git commit src -F -
+	${gitcmd} add src -A
+
+	# Do not commit if there's no change
+	if ! ${gitcmd} diff-index --cached --quiet HEAD --ignore-submodules --
+    then
+	    echo -e "mc-dev Imports\n\n$MODLOG" | ${gitcmd} commit src -F -
+	fi
+)
 )

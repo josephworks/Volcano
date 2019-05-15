@@ -2,14 +2,12 @@
 
 (
 set -e
-basedir="$(cd "$1" && pwd -P)"
+basedir="$(cd "$1" && pwd -P)/Paper"
 gitcmd="git -c commit.gpgsign=false"
 
-($gitcmd submodule update --init && cd Paper && ./paper p && cd .. && ./volcano p && ./volcano b) || (
+(${gitcmd} submodule update --recursive --init && ./scripts/remap.sh "$basedir" && ./scripts/decompile.sh "$basedir" && ./scripts/init.sh "$basedir" && ./scripts/applyPatches.sh "$basedir") || (
     echo "Failed to build Volcano"
     exit 1
 ) || exit 1
-if [ "$2" == "--jar" ]; then
-	mvn clean install
-fi
+mvn clean install
 ) || exit 1

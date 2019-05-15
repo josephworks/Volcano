@@ -12,51 +12,41 @@ basedir=$(dirname "$SOURCE")
 gitcmd="git -c commit.gpgsign=false"
 . $basedir/scripts/init.sh
 
-paperstash() {
-	STASHED=$(git stash)
-}
-
-paperunstash() {
-	if [[ "$STASHED" != "No local changes to save" ]] ; then
-		git stash pop
-	fi
-}
-
 case "$1" in
 	"rb" | "rbp" | "rebuild")
 	(
 		set -e
 		cd "$basedir"
-		scripts/rebuildpatches.sh "$basedir"
+		scripts/rebuildPatches.sh "$basedir"
 	)
 	;;
 	"p" | "patch" | "apply")
 	(
 		set -e
 		cd "$basedir"
-		scripts/apply.sh "$basedir"
+		scripts/applyPatches.sh "$basedir"
 	)
 	;;
 	"b" | "bu" | "build")
 	(
 		basedir
 		mvn -N install
-		cd ${FORK_NAME}-API
-		mvn clean install && cd ../${FORK_NAME}-Server && mvn clean install
+		cd Volcano-API
+		mvn clean install && cd ../Volcano-Server && mvn clean install
 	)
 	;;
 	"d" | "de" | "deploy")
 	(
 		basedir
 		mvn -N install
-		cd ${FORK_NAME}-API
-		mvn clean deploy && cd ../${FORK_NAME}-Server && mvn clean install
+		cd Volcano-API
+		mvn clean deploy && cd ../Volcano-Server && mvn clean install
 	)
 	;;
 	"up" | "upstream")
 	(
 		cd "$basedir"
-		scripts/upstream.sh "$2"
+		scripts/upstreamMerge.py "$2"
 	)
 	;;
 	"r" | "root")
@@ -73,6 +63,7 @@ case "$1" in
 		scripts/build.sh "$basedir" "--jar"
 	;;
 	"e" | "edit")
+        source "$basedir/scripts/functions.sh"
         case "$2" in
             "s" | "server")
             export PAPER_LAST_EDIT="$basedir/Volcano-Server"
@@ -80,25 +71,25 @@ case "$1" in
             (
                 set -e
 
-                paperstash
+                volcanostash
                 $gitcmd rebase -i upstream/upstream
-                paperunstash
+                voclanounstash
             )
             ;;
             "a" | "api")
-            export PAPER_LAST_EDIT="$basedir/Volcano-API"
+            export VOLCANO_LAST_EDIT="$basedir/Volcano-API"
             cd "$basedir/Volcano-API"
             (
                 set -e
 
-                paperstash
+                volcanostash
                 $gitcmd rebase -i upstream/upstream
-                paperunstash
+                volcanounstash
             )
             ;;
             "c" | "continue")
-            cd "$PAPER_LAST_EDIT"
-            unset PAPER_LAST_EDIT
+            cd "$VOLCANO_LAST_EDIT"
+            unset VOLCANO_LAST_EDIT
             (
                 set -e
 
@@ -107,7 +98,7 @@ case "$1" in
                 $gitcmd rebase --continue
 
                 cd "$basedir"
-                scripts/rebuildpatches.sh "$basedir"
+                scripts/rebuildPatches.sh "$basedir"
             )
             ;;
             *)
@@ -115,21 +106,9 @@ case "$1" in
             ;;
         esac
     ;;
-	"setup")
-		if [[ -f ~/.bashrc ]] ; then
-			NAME="ec"
-			if [[ ! -z "${2+x}" ]] ; then
-				NAME="$2"
-			fi
-			(grep "alias $NAME=" ~/.bashrc > /dev/null) && (sed -i "s|alias $NAME=.*|alias $NAME='. $SOURCE'|g" ~/.bashrc) || (echo "alias $NAME='. $SOURCE'" >> ~/.bashrc)
-			alias "$NAME=. $SOURCE"
-			echo "You can now just type '$NAME' at any time to access the paper tool."
-		fi
-	;;
 	*)
 		echo "Volcano build tool command. This provides a variety of commands to build and manage the Volcano build"
-		echo "environment. For all of the functionality of this command to be available, you must first run the"
-		echo "'setup' command. View below for details. For essential building and patching, you do not need to do the setup."
+		echo "environment. View below for details."
 		echo ""
 		echo " Normal commands:"
 		echo "  * rb, rebuild  | Rebuild patches, can be called from anywhere."
@@ -145,14 +124,6 @@ case "$1" in
 		echo "  * e, edit      | Use to edit a specific patch, give it the argument \"server\" or \"api\""
 		echo "                 | respectively to edit the correct project. Use the argument \"continue\" after"
 		echo "                 | the changes have been made to finish and rebuild patches. Can be called from anywhere."
-		echo ""
-		echo "  * setup        | Add an alias to .bashrc to allow full functionality of this script. Run as:"
-		echo "                 |     . ./volcano setup"
-		echo "                 | After you run this command you'll be able to just run 'volcano' from anywhere."
-		echo "                 | The default name for the resulting alias is 'volcano', you can give an argument to override"
-		echo "                 | this default, such as:"
-		echo "                 |     . ./volcano setup example"
-		echo "                 | Which will allow you to run 'example' instead."
 	;;
 esac
 
