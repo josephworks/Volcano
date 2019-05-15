@@ -1,14 +1,14 @@
-From e9ea6c5b662b2cb4044f3cc79ec857d1c6e6e6ef Mon Sep 17 00:00:00 2001
+From c8d7ebd15e20318a3af5c4a764764b4f073dc2b4 Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
-Date: Thu, 11 Apr 2019 16:17:10 -0400
+Date: Tue, 14 May 2019 21:28:10 -0400
 Subject: [PATCH] POM Changes
 
 ---
- pom.xml | 11 +++++------
- 1 file changed, 5 insertions(+), 6 deletions(-)
+ pom.xml | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
 
 diff --git a/pom.xml b/pom.xml
-index 13cdc25f..65749abc 100644
+index dbbb5c72..5cd396be 100644
 --- a/pom.xml
 +++ b/pom.xml
 @@ -1,20 +1,19 @@
@@ -16,7 +16,7 @@ index 13cdc25f..65749abc 100644
  <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
      <modelVersion>4.0.0</modelVersion>
- 
++
      <parent>
 -        <groupId>com.destroystokyo.paper</groupId>
 -        <artifactId>paper-parent</artifactId>
@@ -25,9 +25,10 @@ index 13cdc25f..65749abc 100644
          <version>dev-SNAPSHOT</version>
      </parent>
  
+-    <groupId>com.destroystokyo.paper</groupId>
 -    <artifactId>paper-api</artifactId>
 +    <artifactId>volcano-api</artifactId>
-     <version>1.13.2-R0.1-SNAPSHOT</version>
+     <version>1.14.1-R0.1-SNAPSHOT</version>
      <packaging>jar</packaging>
  
 -    <name>Paper-API</name>
@@ -38,5 +39,5 @@ index 13cdc25f..65749abc 100644
  
      <properties>
 -- 
-2.21.0.windows.1
+2.22.0.rc0
 

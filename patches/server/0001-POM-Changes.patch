@@ -1,6 +1,6 @@
-From f475e1382a792e329f28108f2ab9df70ad8b2144 Mon Sep 17 00:00:00 2001
+From 76b42acd9edee7b1652b006df1c429ca9d8273f3 Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
-Date: Thu, 11 Apr 2019 16:26:26 -0400
+Date: Tue, 14 May 2019 21:48:10 -0400
 Subject: [PATCH] POM Changes
 
 ---
@@ -8,7 +8,7 @@ Subject: [PATCH] POM Changes
  1 file changed, 34 insertions(+), 10 deletions(-)
 
 diff --git a/pom.xml b/pom.xml
-index 9cbd4880..a1d6f213 100644
+index e01d95f1..b56a0779 100644
 --- a/pom.xml
 +++ b/pom.xml
 @@ -1,11 +1,11 @@
@@ -18,7 +18,7 @@ index 9cbd4880..a1d6f213 100644
 -    <artifactId>paper</artifactId>
 +    <artifactId>volcano</artifactId>
      <packaging>jar</packaging>
-     <version>1.13.2-R0.1-SNAPSHOT</version>
+     <version>1.14.1-R0.1-SNAPSHOT</version>
 -    <name>Paper</name>
 -    <url>https://papermc.io</url>
 +    <name>Volcano</name>
@@ -47,18 +47,17 @@ index 9cbd4880..a1d6f213 100644
              <version>${project.version}</version>
              <scope>compile</scope>
          </dependency>
-@@ -86,6 +86,30 @@
-             <artifactId>asm</artifactId>
+@@ -87,6 +87,30 @@
              <version>7.1</version>
              <scope>compile</scope>
-+        </dependency>
-+		 <dependency>
+         </dependency>
++        <dependency>
 +            <groupId>com.zaxxer</groupId>
 +            <artifactId>HikariCP</artifactId>
 +            <version>3.3.1</version>
 +            <scope>compile</scope>
 +        </dependency>
-+        <!-- json-smart -->
++        <!-- JSON-Smart -->
 +        <dependency>
 +            <groupId>net.minidev</groupId>
 +            <artifactId>json-smart</artifactId>
@@ -72,13 +71,14 @@ index 9cbd4880..a1d6f213 100644
 +            <version>5.0.0.Beta1</version>
 +        </dependency>
 +        <dependency>
-+           <groupId>org.json</groupId>
-+           <artifactId>json</artifactId>
-+           <version>20180813</version>
-         </dependency>
++            <groupId>org.json</groupId>
++            <artifactId>json</artifactId>
++            <version>20180813</version>
++        </dependency>
+         <!-- deprecated API depend -->
          <dependency>
-             <groupId>org.xerial</groupId>
-@@ -136,15 +160,15 @@
+             <groupId>com.googlecode.json-simple</groupId>
+@@ -143,15 +167,15 @@
  
      <!-- This builds a completely 'ready to start' jar with all dependencies inside -->
      <build>
@@ -98,5 +98,5 @@ index 9cbd4880..a1d6f213 100644
                  </configuration>
                  <executions>
 -- 
-2.21.0
+2.22.0.rc0
 

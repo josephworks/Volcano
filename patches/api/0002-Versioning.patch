@@ -1,0 +1,89 @@
+From 8d52fe280259967db0e6168efe4de02c9350209d Mon Sep 17 00:00:00 2001
+From: GMatrixGames <gmatrixgames@hotmail.com>
+Date: Tue, 14 May 2019 21:33:54 -0400
+Subject: [PATCH] Versioning
+
+---
+ .../command/defaults/VersionCommand.java      | 39 ++++++++++++-------
+ 1 file changed, 24 insertions(+), 15 deletions(-)
+
+diff --git a/src/main/java/org/bukkit/command/defaults/VersionCommand.java b/src/main/java/org/bukkit/command/defaults/VersionCommand.java
+index ece8d1c8..caa547fe 100644
+--- a/src/main/java/org/bukkit/command/defaults/VersionCommand.java
++++ b/src/main/java/org/bukkit/command/defaults/VersionCommand.java
+@@ -194,13 +194,7 @@ public class VersionCommand extends BukkitCommand {
+             sender.sendMessage("Checking version, please wait...");
+             if (!versionTaskStarted) {
+                 versionTaskStarted = true;
+-                new Thread(new Runnable() {
+-
+-                    @Override
+-                    public void run() {
+-                        obtainVersion();
+-                    }
+-                }).start();
++                new Thread(this::obtainVersion).start(); // Volcano
+             }
+         } finally {
+             versionLock.unlock();
+@@ -211,7 +205,23 @@ public class VersionCommand extends BukkitCommand {
+     private void obtainVersion() {
+         String version = Bukkit.getVersion();
+         if (version == null) version = "Custom";
+-        if (version.startsWith("git-Paper-")) {
++        if (version.startsWith("git-Volcano-")) {
++            String[] parts = version.substring("git-Volcano-".length()).split("[-\\s]");
++            int distance = getDistance(null, parts[0]);
++            switch (distance) {
++                case -1:
++                    setVersionMessage("Error obtaining version information");
++                    break;
++                case 0:
++                    setVersionMessage("You are running the latest version");
++                    break;
++                case -2:
++                    setVersionMessage("Unknown version");
++                    break;
++                default:
++                    setVersionMessage("You are " + distance + " version(s) behind");
++            }
++        } else if (version.startsWith("git-Paper-")) {
+             String[] parts = version.substring("git-Paper-".length()).split("[-\\s]");
+             int distance = getDistance(null, parts[0]);
+             switch (distance) {
+@@ -268,7 +278,7 @@ public class VersionCommand extends BukkitCommand {
+             return getFromJenkins(currentVer);
+         } catch (NumberFormatException ex) {
+             verInfo = verInfo.replace("\"", "");
+-            return getFromRepo("PaperMC/Paper", "ver/1.14", verInfo); // Just for now
++            return getFromRepo("LavaPowered/Volcano", "ver/1.14", verInfo); // Just for now
+         }
+             /*
+             BufferedReader reader = Resources.asCharSource(
+@@ -289,18 +299,17 @@ public class VersionCommand extends BukkitCommand {
+ 
+     private static int getFromJenkins(int currentVer) {
+         try {
+-            BufferedReader reader = Resources.asCharSource(
+-                    new URL("https://ci.destroystokyo.com/job/Paper-1.14/lastSuccessfulBuild/buildNumber"), // Paper
++            // Volcano
++            // Paper
++            try (BufferedReader reader = Resources.asCharSource(
++                    new URL("https://dev.matrixdevteam.ml/ci/job/Volcano/lastSuccessfulBuild/buildNumber"), // Paper
+                     Charsets.UTF_8
+-            ).openBufferedStream();
+-            try {
++            ).openBufferedStream()) {
+                 int newVer = Integer.decode(reader.readLine());
+                 return newVer - currentVer;
+             } catch (NumberFormatException ex) {
+                 ex.printStackTrace();
+                 return -2;
+-            } finally {
+-                reader.close();
+             }
+         } catch (IOException e) {
+             e.printStackTrace();
+-- 
+2.22.0.rc0
+
