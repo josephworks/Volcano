@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -13,7 +13,7 @@ cd $basedir
 paperVer=$(cat current-paper)
 
 minecraftversion=$(cat $basedir/Paper/work/BuildData/info.json | grep minecraftVersion | cut -d '"' -f 4)
-decompile="Paper/work/Minecraft/$minecraftversion/forge"
+decompile="Paper/work/Minecraft/$minecraftversion/spigot"
 
 mkdir -p mc-dev/src/net/minecraft/server
 
@@ -23,7 +23,11 @@ if [ ! -d ".git" ]; then
 fi
 
 rm src/net/minecraft/server/*.java
-cp $basedir/$decompile/net/minecraft/server/*.java src/net/minecraft/server
+for i in $basedir/$decompile/net/minecraft/server/*.java;
+do 
+	cp "$i" src/net/minecraft/server
+done
+
 
 base="$basedir/Paper/Paper-Server/src/main/java/net/minecraft/server"
 cd $basedir/mc-dev/src/net/minecraft/server/
