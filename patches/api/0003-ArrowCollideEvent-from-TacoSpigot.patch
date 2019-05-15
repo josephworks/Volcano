@@ -1,4 +1,4 @@
-From 25cdce067772a19374fe311b3f054954bbe70aa6 Mon Sep 17 00:00:00 2001
+From 328241d54b6ae0679324c03c63369d9d09548082 Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Tue, 14 May 2019 21:42:25 -0400
 Subject: [PATCH] ArrowCollideEvent from TacoSpigot
@@ -10,7 +10,7 @@ Subject: [PATCH] ArrowCollideEvent from TacoSpigot
 
 diff --git a/src/main/java/net/techcable/tacospigot/event/entity/ArrowCollideEvent.java b/src/main/java/net/techcable/tacospigot/event/entity/ArrowCollideEvent.java
 new file mode 100644
-index 00000000..56d18f82
+index 00000000..7bfb9224
 --- /dev/null
 +++ b/src/main/java/net/techcable/tacospigot/event/entity/ArrowCollideEvent.java
 @@ -0,0 +1,61 @@
@@ -25,7 +25,7 @@ index 00000000..56d18f82
 +/**
 + * Called when an arrow collides with an entity
 + * <p>
-+ * This even is called <b>before</b> {@link org.bukkit.event.EntityDamageByEntityEvent}, and cancelling it will allow the arrow to continue flying
++ * This even is called <b>before</b> {@link org.bukkit.event.entity.EntityDamageByEntityEvent}, and cancelling it will allow the arrow to continue flying
 + */
 +public class ArrowCollideEvent extends EntityEvent implements Cancellable {
 +
@@ -37,7 +37,7 @@ index 00000000..56d18f82
 +     * @return the entity
 +     */
 +    public Entity getCollidedWith() {
-+        return collideWith;
++        return collidedWith;
 +    }
 +
 +    public ArrowCollideEvent(Arrow what, Entity collidedWith) {
