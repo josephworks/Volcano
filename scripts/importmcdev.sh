@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -10,7 +10,7 @@ done
 
 workdir=$basedir/Paper/work
 minecraftversion=$(cat $basedir/Paper/work/BuildData/info.json | grep minecraftVersion | cut -d '"' -f 4)
-decompiledir=$workdir/Minecraft/$minecraftversion/forge
+decompiledir=$workdir/Minecraft/$minecraftversion/spigot
 
 nms="net/minecraft/server"
 export MODLOG=""
@@ -47,7 +47,7 @@ function import {
 (
 	cd Paper/Paper-Server/
 	lastlog=$(git log -1 --oneline)
-	if [[ "$lastlog" = *"EMC-Extra mc-dev Imports"* ]]; then
+	if [[ "$lastlog" = *"Volcano mc-dev Imports"* ]]; then
 		git reset --hard HEAD^
 	fi
 )
@@ -83,5 +83,5 @@ done
 	cd Paper/Paper-Server/
 	rm -rf nms-patches
 	git add src -A
-	echo -e "EMC-Extra mc-dev Imports\n\n$MODLOG" | git commit src -F -
+	echo -e "Volcano mc-dev Imports\n\n$MODLOG" | git commit src -F -
 )
