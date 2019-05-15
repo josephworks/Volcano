@@ -67,7 +67,7 @@ case "$1" in
 	;;
 	"j" | "jar")
 		cd "$basedir"
-		scripts/build.sh "$basedir" "--jar"
+		scripts/build.sh "$basedir"
 	;;
 	"e" | "edit")
         source "$basedir/scripts/functions.sh"
