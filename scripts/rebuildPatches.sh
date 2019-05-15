@@ -28,7 +28,7 @@ function cleanupPatches {
             git checkout -- $patch >/dev/null
         fi
     done
-)
+}
 
 function savePatches {
     what=$1
