@@ -1,0 +1,528 @@
+From 785014b3fa944f444fb4cd985fa8718469b2a24c Mon Sep 17 00:00:00 2001
+From: GMatrixGames <gmatrixgames@hotmail.com>
+Date: Tue, 14 May 2019 23:11:06 -0400
+Subject: [PATCH] Volcano configs and commands
+
+---
+ src/main/java/net/minecraft/server/World.java |   3 +-
+ .../org/bukkit/craftbukkit/CraftServer.java   |   3 +
+ .../java/org/bukkit/craftbukkit/Main.java     |   8 ++
+ .../lavapowered/volcano/VolcanoConfig.java    | 119 ++++++++++++++++++
+ .../volcano/VolcanoWorldConfig.java           |  65 ++++++++++
+ .../volcano/commands/PingCommand.java         |  42 +++++++
+ .../volcano/commands/UUIDCommand.java         |  65 ++++++++++
+ .../volcano/commands/VolcanoCommand.java      | 114 +++++++++++++++++
+ 8 files changed, 418 insertions(+), 1 deletion(-)
+ create mode 100644 src/main/java/org/lavapowered/volcano/VolcanoConfig.java
+ create mode 100644 src/main/java/org/lavapowered/volcano/VolcanoWorldConfig.java
+ create mode 100644 src/main/java/org/lavapowered/volcano/commands/PingCommand.java
+ create mode 100644 src/main/java/org/lavapowered/volcano/commands/UUIDCommand.java
+ create mode 100644 src/main/java/org/lavapowered/volcano/commands/VolcanoCommand.java
+
+diff --git a/src/main/java/net/minecraft/server/World.java b/src/main/java/net/minecraft/server/World.java
+index c04d73e7..45c6883d 100644
+--- a/src/main/java/net/minecraft/server/World.java
++++ b/src/main/java/net/minecraft/server/World.java
+@@ -91,8 +91,8 @@ public abstract class World implements IIBlockAccess, GeneratorAccess, AutoClose
+     public long ticksPerMonsterSpawns;
+     public boolean populating;
+     public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
+-
+     public final com.destroystokyo.paper.PaperWorldConfig paperConfig; // Paper
++    public final org.lavapowered.volcano.VolcanoWorldConfig volcanoConfig; // Volcano
+ 
+     public final co.aikar.timings.WorldTimingsHandler timings; // Paper
+     public static BlockPosition lastPhysicsProblem; // Spigot
+@@ -117,6 +117,7 @@ public abstract class World implements IIBlockAccess, GeneratorAccess, AutoClose
+     protected World(WorldData worlddata, DimensionManager dimensionmanager, BiFunction<World, WorldProvider, IChunkProvider> bifunction, GameProfilerFiller gameprofilerfiller, boolean flag, org.bukkit.generator.ChunkGenerator gen, org.bukkit.World.Environment env) {
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig( worlddata.getName() ); // Spigot
+         this.paperConfig = new com.destroystokyo.paper.PaperWorldConfig(worlddata.getName(), this.spigotConfig); // Paper
++        this.volcanoConfig = new org.lavapowered.volcano.VolcanoWorldConfig(worlddata.getName()); // Volcano
+         this.generator = gen;
+         this.world = new CraftWorld((WorldServer) this, gen, env);
+         this.ticksPerAnimalSpawns = this.getServer().getTicksPerAnimalSpawns(); // CraftBukkit
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 9b423dea..c2d9e2c5 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -788,6 +788,7 @@ public final class CraftServer implements Server {
+ 
+         org.spigotmc.SpigotConfig.init((File) console.options.valueOf("spigot-settings")); // Spigot
+         com.destroystokyo.paper.PaperConfig.init((File) console.options.valueOf("paper-settings")); // Paper
++        org.lavapowered.volcano.VolcanoConfig.init((File) console.options.valueOf("volcano-settings")); // Volcano
+         for (WorldServer world : console.getWorlds()) {
+             world.worldData.setDifficulty(config.difficulty);
+             world.setSpawnFlags(config.spawnMonsters, config.spawnAnimals);
+@@ -804,6 +805,7 @@ public final class CraftServer implements Server {
+             }
+             world.spigotConfig.init(); // Spigot
+             world.paperConfig.init(); // Paper
++            world.volcanoConfig.init(); // Volcano
+         }
+ 
+         Plugin[] pluginClone = pluginManager.getPlugins().clone(); // Paper
+@@ -822,6 +824,7 @@ public final class CraftServer implements Server {
+         reloadData();
+         org.spigotmc.SpigotConfig.registerCommands(); // Spigot
+         com.destroystokyo.paper.PaperConfig.registerCommands(); // Paper
++        org.lavapowered.volcano.VolcanoConfig.registerCommands(); // Volcano
+         overrideAllCommandBlockCommands = commandsConfiguration.getStringList("command-block-overrides").contains("*");
+         ignoreVanillaPermissions = commandsConfiguration.getBoolean("ignore-vanilla-permissions");
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
+index 405ea5c4..f9b933e0 100644
+--- a/src/main/java/org/bukkit/craftbukkit/Main.java
++++ b/src/main/java/org/bukkit/craftbukkit/Main.java
+@@ -144,6 +144,14 @@ public class Main {
+                         .defaultsTo("Unknown Server")
+                         .describedAs("Name");
+                 // Paper end
++
++                // Volcano start
++                acceptsAll(asList("volcano", "volcano-settings"), "File for volcano settings")
++                        .withRequiredArg()
++                        .ofType(File.class)
++                        .defaultsTo(new File("volcano.yml"))
++                        .describedAs("Yml file");
++                // Volcano end
+             }
+         };
+ 
+diff --git a/src/main/java/org/lavapowered/volcano/VolcanoConfig.java b/src/main/java/org/lavapowered/volcano/VolcanoConfig.java
+new file mode 100644
+index 00000000..9771344f
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/VolcanoConfig.java
+@@ -0,0 +1,119 @@
++package org.lavapowered.volcano;
++
++import com.google.common.base.Throwables;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.Bukkit;
++import org.bukkit.command.Command;
++import org.bukkit.configuration.InvalidConfigurationException;
++import org.bukkit.configuration.file.YamlConfiguration;
++import org.lavapowered.volcano.commands.PingCommand;
++import org.lavapowered.volcano.commands.UUIDCommand;
++import org.lavapowered.volcano.commands.VolcanoCommand;
++
++import java.io.File;
++import java.io.IOException;
++import java.lang.reflect.InvocationTargetException;
++import java.lang.reflect.Method;
++import java.lang.reflect.Modifier;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.logging.Level;
++
++public class VolcanoConfig {
++
++    private static File CONFIG_FILE;
++    private static final String HEADER = "This is the main configuration file for Volcano.\n" + "Some of these config options can severely impact gameplay and server performance, so use\n" + "with caution, and make sure you know what each option does before configuring.\n" + "\n" + "If you need help with the configuration or have any questions related to Volcano,\n" + "join us on Discord at.\n" + "\n" + "https://discord.gg/wBsB2vt/\n";
++    /*========================================================================*/
++    static YamlConfiguration config;
++    static int version;
++    static Map<String, Command> commands;
++    /*========================================================================*/
++
++    public static void init(File configFile) {
++        CONFIG_FILE = configFile;
++        config = new YamlConfiguration();
++        try {
++            System.out.println("Loading Volcano configuration from: " + configFile.getName());
++            config.load(CONFIG_FILE);
++        } catch (IOException ex) {
++        } catch (InvalidConfigurationException ex) {
++            Bukkit.getLogger().log(Level.SEVERE, "Could not load volcano.yml, please correct your syntax errors", ex);
++            throw Throwables.propagate(ex);
++        }
++        config.options().header(HEADER);
++        config.options().copyDefaults(true);
++
++        commands = new HashMap<>();
++        commands.put("volcano", new VolcanoCommand("volcano"));
++        commands.put("ping", new PingCommand("ping"));
++        commands.put("uuid", new UUIDCommand("uuid"));
++
++        version = getInt("config-version", 1);
++        set("config-version", 1);
++        readConfig(VolcanoConfig.class, null);
++    }
++
++    public static void registerCommands() {
++        for (Map.Entry<String, Command> entry : commands.entrySet()) {
++            MinecraftServer.getServer().server.getCommandMap().register(entry.getKey(), "Volcano", entry.getValue());
++        }
++    }
++
++    static void readConfig(Class<?> clazz, Object instance) {
++        for (Method method : clazz.getDeclaredMethods()) {
++            if (Modifier.isPrivate(method.getModifiers())) {
++                if (method.getParameterTypes().length == 0 && method.getReturnType() == Void.TYPE) {
++                    try {
++                        method.setAccessible(true);
++                        method.invoke(instance);
++                    } catch (InvocationTargetException ex) {
++                        throw Throwables.propagate(ex.getCause());
++                    } catch (Exception ex) {
++                        Bukkit.getLogger().log(Level.SEVERE, "Error invoking " + method, ex);
++                    }
++                }
++            }
++        }
++
++        try {
++            config.save(CONFIG_FILE);
++        } catch (IOException ex) {
++            Bukkit.getLogger().log(Level.SEVERE, "Could not save " + CONFIG_FILE, ex);
++        }
++    }
++
++    private static void set(String path, Object val) {
++        config.set(path, val);
++    }
++
++    private static boolean getBoolean(String path, boolean def) {
++        config.addDefault(path, def);
++        return config.getBoolean(path, config.getBoolean(path));
++    }
++
++    private static double getDouble(String path, double def) {
++        config.addDefault(path, def);
++        return config.getDouble(path, config.getDouble(path));
++    }
++
++    private static float getFloat(String path, float def) {
++        return (float) getDouble(path, def);
++    }
++
++    private static int getInt(String path, int def) {
++        config.addDefault(path, def);
++        return config.getInt(path, config.getInt(path));
++    }
++
++    private static <T> List getList(String path, T def) {
++        config.addDefault(path, def);
++        return config.getList(path, config.getList(path));
++    }
++
++    private static String getString(String path, String def) {
++        config.addDefault(path, def);
++        return config.getString(path, config.getString(path));
++    }
++
++}
+diff --git a/src/main/java/org/lavapowered/volcano/VolcanoWorldConfig.java b/src/main/java/org/lavapowered/volcano/VolcanoWorldConfig.java
+new file mode 100644
+index 00000000..39273d81
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/VolcanoWorldConfig.java
+@@ -0,0 +1,65 @@
++package org.lavapowered.volcano;
++
++import org.bukkit.Bukkit;
++import org.bukkit.configuration.file.YamlConfiguration;
++
++import java.util.List;
++
++public class VolcanoWorldConfig {
++
++    private final String worldName;
++    private final YamlConfiguration config;
++    private boolean verbose;
++
++    public VolcanoWorldConfig(String worldName) {
++        this.worldName = worldName;
++        this.config = VolcanoConfig.config;
++        init();
++    }
++
++    public void init() {
++        this.verbose = getBoolean("verbose", true);
++        log("-------- World Settings For [" + worldName + "] --------");
++        VolcanoConfig.readConfig(VolcanoWorldConfig.class, this);
++    }
++
++    private void log(String s) {
++        if (verbose) {
++            Bukkit.getLogger().info(s);
++        }
++    }
++
++    private void set(String path, Object val) {
++        config.set("world-settings.default." + path, val);
++    }
++
++    private boolean getBoolean(String path, boolean def) {
++        config.addDefault("world-settings.default." + path, def);
++        return config.getBoolean("world-settings." + worldName + "." + path, config.getBoolean("world-settings.default." + path));
++    }
++
++    private double getDouble(String path, double def) {
++        config.addDefault("world-settings.default." + path, def);
++        return config.getDouble("world-settings." + worldName + "." + path, config.getDouble("world-settings.default." + path));
++    }
++
++    private int getInt(String path, int def) {
++        config.addDefault("world-settings.default." + path, def);
++        return config.getInt("world-settings." + worldName + "." + path, config.getInt("world-settings.default." + path));
++    }
++
++    private float getFloat(String path, float def) {
++        return (float) getDouble(path, def);
++    }
++
++    private <T> List getList(String path, T def) {
++        config.addDefault("world-settings.default." + path, def);
++        return config.getList("world-settings." + worldName + "." + path, config.getList("world-settings.default." + path));
++    }
++
++    private String getString(String path, String def) {
++        config.addDefault("world-settings.default." + path, def);
++        return config.getString("world-settings." + worldName + "." + path, config.getString("world-settings.default." + path));
++    }
++
++}
+diff --git a/src/main/java/org/lavapowered/volcano/commands/PingCommand.java b/src/main/java/org/lavapowered/volcano/commands/PingCommand.java
+new file mode 100644
+index 00000000..1a5195ca
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/commands/PingCommand.java
+@@ -0,0 +1,42 @@
++package org.lavapowered.volcano.commands;
++
++import org.bukkit.Bukkit;
++import org.bukkit.ChatColor;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.entity.Player;
++
++public class PingCommand extends Command {
++
++    public PingCommand(String name) {
++        super(name);
++        description = "Get's the ping of yourself, or a selected player";
++        usageMessage = "/ping <player>";
++        setPermission("volcano.command.ping");
++    }
++
++    @Override
++    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
++        if (!testPermission(sender)) return true;
++
++        if (sender instanceof Player) {
++            Player player = (Player) sender;
++            if (args.length == 0) {
++                player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aYour ping is: &b&l" + getPing(player) + "ms"));
++            } else if (args.length == 1) {
++                Player target = Bukkit.getPlayerExact(args[0]);
++                player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aThe player, " + target.getDisplayName() + "'s ping is: &b&l" + getPing(target) + "ms"));
++            }
++        } else {
++            sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cYou cannot use this command from console, please join online."));
++        }
++
++        return true;
++    }
++
++
++    private int getPing(Player player) {
++        return ((CraftPlayer) player).getHandle().ping;
++    }
++}
+diff --git a/src/main/java/org/lavapowered/volcano/commands/UUIDCommand.java b/src/main/java/org/lavapowered/volcano/commands/UUIDCommand.java
+new file mode 100644
+index 00000000..c988a1af
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/commands/UUIDCommand.java
+@@ -0,0 +1,65 @@
++package org.lavapowered.volcano.commands;
++
++import net.md_5.bungee.api.chat.ClickEvent;
++import net.md_5.bungee.api.chat.ComponentBuilder;
++import net.md_5.bungee.api.chat.HoverEvent;
++import net.md_5.bungee.api.chat.TextComponent;
++import org.bukkit.Bukkit;
++import org.bukkit.ChatColor;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.bukkit.entity.Player;
++
++import javax.annotation.Nonnull;
++import java.util.Collections;
++import java.util.List;
++
++public class UUIDCommand extends Command {
++
++    public UUIDCommand(@Nonnull String name) {
++        super(name);
++        description = "Get's the UUID of yourself, or a selected player";
++        usageMessage = "/uuid <player>";
++        setPermission("volcano.command.uuid");
++        setAliases(Collections.singletonList("id"));
++    }
++
++    @Override
++    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
++        if (!testPermission(sender)) return true;
++
++        if (sender instanceof Player) {
++            Player player = (Player) sender;
++            if (args.length == 0) {
++                player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aYour UUID is: " + player.getUniqueId()));
++                TextComponent comp = new TextComponent();
++                comp.setText(ChatColor.translateAlternateColorCodes('&', "&c" + player.getUniqueId()));
++                comp.setColor(null);
++                comp.setBold(false);
++                comp.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "" + player.getUniqueId()));
++                comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, (new ComponentBuilder(ChatColor.translateAlternateColorCodes('&', "&8Click to copy your UUID")).create())));
++                player.spigot().sendMessage(comp);
++            } else if (args.length == 1) {
++                Player target = Bukkit.getPlayerExact(args[0]);
++                player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aThe UUID of " + target.getDisplayName() + " is: " + target.getUniqueId()));
++                TextComponent comp = new TextComponent();
++                comp.setText(ChatColor.translateAlternateColorCodes('&', "&c" + target.getUniqueId()));
++                comp.setColor(null);
++                comp.setBold(false);
++                comp.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "" + target.getUniqueId()));
++                comp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, (new ComponentBuilder(ChatColor.translateAlternateColorCodes('&', "&8Click to copy " + target.getDisplayName() + "'s UUID")).create())));
++                player.spigot().sendMessage(comp);
++            } else if (args.length > 1) {
++                player.sendMessage(usageMessage);
++            }
++        }
++
++        return false;
++    }
++
++    @Override
++    @Nonnull
++    public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
++        return Collections.emptyList();
++    }
++}
+diff --git a/src/main/java/org/lavapowered/volcano/commands/VolcanoCommand.java b/src/main/java/org/lavapowered/volcano/commands/VolcanoCommand.java
+new file mode 100644
+index 00000000..e3165f74
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/commands/VolcanoCommand.java
+@@ -0,0 +1,114 @@
++package org.lavapowered.volcano.commands;
++
++import com.google.common.base.Functions;
++import com.google.common.collect.Lists;
++import net.minecraft.server.MinecraftKey;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.WorldServer;
++import org.bukkit.Bukkit;
++import org.bukkit.ChatColor;
++import org.bukkit.Location;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++
++import java.io.File;
++import java.util.*;
++import java.util.stream.Collectors;
++
++public class VolcanoCommand extends Command {
++
++    public VolcanoCommand(String name) {
++        super(name);
++        description = "Volcano related commands";
++        usageMessage = "/volcano [version | reload]";
++        setPermission("bukkit.command.volcano");
++    }
++
++    @Override
++    public List<String> tabComplete(CommandSender sender, String alias, String[] args, Location location) throws IllegalArgumentException {
++        if (args.length <= 1) {
++            return getListMatchingLast(args, "version", "reload");
++        }
++
++        return Collections.emptyList();
++    }
++
++    // Code from Mojang - copyright them
++    public static List<String> getListMatchingLast(String[] args, String... matches) {
++        return getListMatchingLast(args, Arrays.asList(matches));
++    }
++
++    public static boolean matches(String s, String s1) {
++        return s1.regionMatches(true, 0, s, 0, s.length());
++    }
++
++    public static List<String> getListMatchingLast(String[] strings, Collection<?> collection) {
++        String last = strings[strings.length - 1];
++        ArrayList<String> results = Lists.newArrayList();
++
++        if (!collection.isEmpty()) {
++
++            for (String s1 : collection.stream().map(Functions.toStringFunction()).collect(Collectors.toList())) {
++                if (matches(last, s1)) {
++                    results.add(s1);
++                }
++            }
++
++            if (results.isEmpty()) {
++
++                for (Object object : collection) {
++                    if (object instanceof MinecraftKey && matches(last, ((MinecraftKey) object).getKey())) {
++                        results.add(String.valueOf(object));
++                    }
++                }
++            }
++        }
++
++        return results;
++    }
++    // end copy stuff
++
++
++    @Override
++    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
++        if (!testPermission(sender)) return true;
++
++        if (args.length == 0) {
++            sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
++            return false;
++        }
++
++        switch (args[0].toLowerCase(Locale.ENGLISH)) {
++            case "reload":
++                doReload(sender);
++                break;
++            case "ver":
++            case "version":
++                Command ver = Bukkit.getServer().getCommandMap().getCommand("version");
++                if (ver != null) {
++                    ver.execute(sender, commandLabel, new String[0]);
++                    break;
++                }
++                // else - fall through default
++            default:
++                sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
++                return false;
++        }
++
++        return true;
++    }
++
++    private void doReload(CommandSender sender) {
++        Command.broadcastCommandMessage(sender, ChatColor.RED + "Please note that this command is not supported and may cause issues.");
++        Command.broadcastCommandMessage(sender, ChatColor.RED + "If you encounter any issues please use the /stop command to restart your server.");
++
++        MinecraftServer console = MinecraftServer.getServer();
++        org.lavapowered.volcano.VolcanoConfig.init((File) console.options.valueOf("volcano-settings"));
++        for (WorldServer world : console.getWorlds()) {
++            world.volcanoConfig.init();
++        }
++        console.server.reloadCount++;
++
++        Command.broadcastCommandMessage(sender, ChatColor.GREEN + "Volcano config reload complete.");
++    }
++}
+-- 
+2.22.0.rc0
+
