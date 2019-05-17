@@ -1,4 +1,4 @@
-From 061dc0454e72954565493ba593f9b88b3c83ec9f Mon Sep 17 00:00:00 2001
+From b8ae5a7815e39b27e51924a79200199537da1464 Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Fri, 17 May 2019 19:28:32 -0400
 Subject: [PATCH] Needs more multithreading
@@ -137,7 +137,7 @@ index 000000000..f21c62a65
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 73ac45bf7..6b7ab4020 100644
+index 73ac45bf7..a87f0a7b0 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -83,7 +83,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
@@ -145,7 +145,7 @@ index 73ac45bf7..6b7ab4020 100644
      private volatile boolean isRestarting = false; // Paper - flag to signify we're attempting to restart
      private boolean isStopped;
 -    private int ticks;
-+    private int ticks; public int currentTick() { return this.ticks } // Volcano - OBFHELPER
++    private int ticks; public int currentTick() { return this.ticks; } // Volcano - OBFHELPER
      protected final Proxy proxy;
      private boolean onlineMode;
      private boolean A;
