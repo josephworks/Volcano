@@ -24,8 +24,8 @@
             <url>http://ci.emc.gs/nexus/content/repositories/aikar/</url>
         </repository>
         <repository>
-            <id>destroystokyo-releases</id>
-            <url>https://repo.destroystokyo.com/repository/maven-releases/</url>
+            <id>papermc</id>
+            <url>https://papermc.io/repo/repository/maven-releases/</url>
         </repository>
     </repositories>
 
