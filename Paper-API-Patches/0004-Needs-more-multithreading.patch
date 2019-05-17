@@ -1,0 +1,34 @@
+From 41542c5cb22c06c887299e7d57954fdd0de7045e Mon Sep 17 00:00:00 2001
+From: GMatrixGames <gmatrixgames@hotmail.com>
+Date: Fri, 17 May 2019 19:29:05 -0400
+Subject: [PATCH] Needs more multithreading
+
+
+diff --git a/src/main/java/co/aikar/timings/ThreadAssertion.java b/src/main/java/co/aikar/timings/ThreadAssertion.java
+new file mode 100644
+index 00000000..09676505
+--- /dev/null
++++ b/src/main/java/co/aikar/timings/ThreadAssertion.java
+@@ -0,0 +1,19 @@
++package co.aikar.timings;
++
++public class ThreadAssertion {
++
++    private static boolean mainThread;
++
++    public static boolean is() {
++        return mainThread;
++    }
++
++    static void start() {
++        mainThread = true;
++    }
++
++    public static void close() {
++        mainThread = false;
++    }
++
++}
+-- 
+2.22.0.rc0
+

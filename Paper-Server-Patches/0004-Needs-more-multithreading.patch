@@ -1,0 +1,830 @@
+From 061dc0454e72954565493ba593f9b88b3c83ec9f Mon Sep 17 00:00:00 2001
+From: GMatrixGames <gmatrixgames@hotmail.com>
+Date: Fri, 17 May 2019 19:28:32 -0400
+Subject: [PATCH] Needs more multithreading
+
+
+diff --git a/src/main/java/com/destroystokyo/paper/PaperConfig.java b/src/main/java/com/destroystokyo/paper/PaperConfig.java
+index 8942a06bf..9ff34118a 100644
+--- a/src/main/java/com/destroystokyo/paper/PaperConfig.java
++++ b/src/main/java/com/destroystokyo/paper/PaperConfig.java
+@@ -267,6 +267,17 @@ public class PaperConfig {
+         flyingKickVehicleMessage = getString("messages.kick.flying-vehicle", flyingKickVehicleMessage);
+     }
+ 
++    public static int playerAutoSaveRate = -1;
++    public static int maxPlayerAutoSavePerTick = 10;
++    private static void playerAutoSaveRate() {
++        playerAutoSaveRate = getInt("settings.player-auto-save-rate", -1);
++        maxPlayerAutoSavePerTick = getInt("settings.max-player-auto-save-per-tick", -1);
++        if (maxPlayerAutoSavePerTick == -1) { // -1 Automatic / "Recommended"
++            // 10 should be safe for everyone unless you're mass spamming player auto save
++            maxPlayerAutoSavePerTick = (playerAutoSaveRate == -1 || playerAutoSaveRate > 100) ? 10 : 20;
++        }
++    }
++
+     public static boolean suggestPlayersWhenNullTabCompletions = true;
+     private static void suggestPlayersWhenNull() {
+         suggestPlayersWhenNullTabCompletions = getBoolean("settings.suggest-player-names-when-null-tab-completions", suggestPlayersWhenNullTabCompletions);
+diff --git a/src/main/java/net/minecraft/server/AdvancementDataPlayer.java b/src/main/java/net/minecraft/server/AdvancementDataPlayer.java
+index 593979152..067073fbc 100644
+--- a/src/main/java/net/minecraft/server/AdvancementDataPlayer.java
++++ b/src/main/java/net/minecraft/server/AdvancementDataPlayer.java
+@@ -12,6 +12,7 @@ import com.google.gson.JsonParseException;
+ import com.google.gson.internal.Streams;
+ import com.google.gson.reflect.TypeToken;
+ import com.google.gson.stream.JsonReader;
++import com.koloboke.collect.map.hash.HashObjObjMaps;
+ import com.mojang.datafixers.Dynamic;
+ import com.mojang.datafixers.types.JsonOps;
+ import java.io.File;
+@@ -198,6 +199,35 @@ public class AdvancementDataPlayer {
+         this.d();
+     }
+ 
++    // Volcano start - copied from below
++    public Map<MinecraftKey, AdvancementProgress> toSerializableMap() {
++        Map<MinecraftKey, AdvancementProgress> map = HashObjObjMaps.newMutableMap();
++        Iterator<Entry<Advancement, AdvancementProgress>> iterator = this.data.entrySet().iterator();
++
++        while (iterator.hasNext()) {
++            Entry<Advancement, AdvancementProgress> entry = iterator.next();
++            AdvancementProgress advancementprogress = entry.getValue();
++
++            if (advancementprogress.b()) {
++                map.put((entry.getKey()).getName(), advancementprogress);
++            }
++        }
++        return map;
++    }
++
++    public void save(Map<MinecraftKey, AdvancementProgress> serializableMap) {
++        if (this.e.getParentFile() != null) {
++            this.e.getParentFile().mkdirs();
++        }
++
++        try {
++            Files.write(AdvancementDataPlayer.b.toJson(serializableMap), this.e, StandardCharsets.UTF_8);
++        } catch (IOException ioexception) {
++            AdvancementDataPlayer.LOGGER.error("Couldn't save player advancements to {}", this.e, ioexception);
++        }
++    }
++    // Volcano end
++
+     public void c() {
+         if (org.spigotmc.SpigotConfig.disableAdvancementSaving) return;
+         Map<MinecraftKey, AdvancementProgress> map = Maps.newHashMap();
+diff --git a/src/main/java/net/minecraft/server/EntityPlayer.java b/src/main/java/net/minecraft/server/EntityPlayer.java
+index e9f158d8e..3574b9a39 100644
+--- a/src/main/java/net/minecraft/server/EntityPlayer.java
++++ b/src/main/java/net/minecraft/server/EntityPlayer.java
+@@ -40,6 +40,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
+ 
+     private static final Logger LOGGER = LogManager.getLogger();
+     public String locale = null; // CraftBukkit - lowercase // Paper - default to null
++    public long lastSave = MinecraftServer.currentTick; // Paper
+     public PlayerConnection playerConnection;
+     public final MinecraftServer server;
+     public final PlayerInteractManager playerInteractManager;
+diff --git a/src/main/java/net/minecraft/server/EnumCreatureType.java b/src/main/java/net/minecraft/server/EnumCreatureType.java
+new file mode 100644
+index 000000000..f21c62a65
+--- /dev/null
++++ b/src/main/java/net/minecraft/server/EnumCreatureType.java
+@@ -0,0 +1,44 @@
++package net.minecraft.server;
++
++import java.util.Arrays;
++import java.util.Map;
++import java.util.stream.Collectors;
++
++public enum EnumCreatureType {
++
++    MONSTER("monster", 70, false, false), CREATURE("creature", 10, true, true), AMBIENT("ambient", 15, true, false), WATER_CREATURE("water_creature", 15, true, false), MISC("misc", 15, true, false);
++
++    private static final Map<String, EnumCreatureType> f = Arrays.stream(values()).collect(Collectors.toMap(EnumCreatureType::a, (enumcreaturetype) -> {
++        return enumcreaturetype;
++    }));
++    private final int g;
++    private final boolean h;
++    private final boolean i;
++    private final String j;
++
++    private EnumCreatureType(String s, int i, boolean flag, boolean flag1) {
++        this.j = s;
++        this.g = i;
++        this.h = flag;
++        this.i = flag1;
++    }
++
++    public String a() {
++        return this.j;
++    }
++
++    public int spawnLimit() { return b(); } // Volcano
++    public int b() {
++        return this.g;
++    }
++
++    public boolean passive() { return c(); } // Volcano
++    public boolean c() {
++        return this.h;
++    }
++
++    public boolean rare() { return d(); } // Volcano
++    public boolean d() {
++        return this.i;
++    }
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 73ac45bf7..6b7ab4020 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -83,7 +83,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+     private volatile boolean isRunning = true;
+     private volatile boolean isRestarting = false; // Paper - flag to signify we're attempting to restart
+     private boolean isStopped;
+-    private int ticks;
++    private int ticks; public int currentTick() { return this.ticks } // Volcano - OBFHELPER
+     protected final Proxy proxy;
+     private boolean onlineMode;
+     private boolean A;
+diff --git a/src/main/java/net/minecraft/server/NetworkManager.java b/src/main/java/net/minecraft/server/NetworkManager.java
+index 4766f7b77..d95b7b9c5 100644
+--- a/src/main/java/net/minecraft/server/NetworkManager.java
++++ b/src/main/java/net/minecraft/server/NetworkManager.java
+@@ -231,7 +231,7 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet<?>> {
+ 
+     }
+ 
+-    private void sendPacketQueue() { this.o(); } // Paper - OBFHELPER
++    public void sendPacketQueue() { this.o(); } // Paper - OBFHELPER // Volcano private -> public
+     private void o() {
+         if (this.channel != null && this.channel.isOpen()) {
+             this.j.readLock().lock();
+diff --git a/src/main/java/net/minecraft/server/PlayerList.java b/src/main/java/net/minecraft/server/PlayerList.java
+index 0e7e47f83..36f5b99ed 100644
+--- a/src/main/java/net/minecraft/server/PlayerList.java
++++ b/src/main/java/net/minecraft/server/PlayerList.java
+@@ -39,6 +39,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
+ import org.bukkit.event.player.PlayerRespawnEvent;
+ import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+ import org.bukkit.util.Vector;
++import org.lavapowered.volcano.server.VolcanoAsyncExecutor;
++import org.lavapowered.volcano.server.VolcanoAsyncScheduler;
+ import org.spigotmc.event.player.PlayerSpawnLocationEvent;
+ // CraftBukkit end
+ 
+@@ -380,21 +382,40 @@ public abstract class PlayerList {
+         return nbttagcompound1;
+     }
+ 
++    // Volcano start
+     protected void savePlayerFile(EntityPlayer entityplayer) {
++        savePlayerFile(entityplayer, true);
++    }
++    // Volcano end
++
++    protected void savePlayerFile(EntityPlayer entityplayer, boolean async) {
+         if (!entityplayer.getBukkitEntity().isPersistent()) return; // CraftBukkit
+-        this.playerFileData.save(entityplayer);
++        entityplayer.lastSave = MinecraftServer.currentTick; // Paper
++        // this.playerFileData.save(entityplayer); // Volcano - moved down
+         ServerStatisticManager serverstatisticmanager = (ServerStatisticManager) entityplayer.getStatisticManager(); // CraftBukkit
+ 
+         if (serverstatisticmanager != null) {
+-            serverstatisticmanager.a();
++            // serverstatisticmanager.a(); // Volcano - moved down
+         }
+ 
+         AdvancementDataPlayer advancementdataplayer = (AdvancementDataPlayer) entityplayer.getAdvancementData(); // CraftBukkit
+ 
++        Map<MinecraftKey, AdvancementProgress> advancements = advancementdataplayer.toSerializableMap(); // Volcano
+         if (advancementdataplayer != null) {
+-            advancementdataplayer.c();
++            // advancementdataplayer.c(); // Volcano - moved down
+         }
+ 
++        // Volcano start
++        VolcanoAsyncExecutor.scheduleSingleAsyncTask(() -> {
++            this.playerFileData.save(entityplayer);
++            if (serverstatisticmanager != null) {
++                serverstatisticmanager.a();
++            }
++            if (advancementdataplayer != null) {
++                advancementdataplayer.save(advancements);
++            }
++        });
++        // Volcano end
+     }
+ 
+     public String disconnect(EntityPlayer entityplayer) { // CraftBukkit - return string
+@@ -975,15 +996,27 @@ public abstract class PlayerList {
+ 
+     }
+ 
++    // Paper start
+     public void savePlayers() {
+-        MCUtil.ensureMain("Save Players" , () -> { // Paper - Ensure main
+-        MinecraftTimings.savePlayers.startTiming(); // Paper
++        savePlayers(null);
++    }
++
++    public void savePlayers(Integer interval) {
++        // MCUtil.ensureMain("Save Players" , () -> { // Paper - Ensure main // Volcano
++        long now = MinecraftServer.currentTick;
++        // MinecraftTimings.savePlayers.startTiming
++        int numSaved = 0; // Paper
+         for (int i = 0; i < this.players.size(); ++i) {
+-            this.savePlayerFile((EntityPlayer) this.players.get(i));
++            EntityPlayer player = this.players.get(i);
++            if (interval == null || now - player.lastSave >= interval) {
++                this.savePlayerFile(player, false);
++                if (interval != null && ++numSaved <= com.destroystokyo.paper.PaperConfig.maxPlayerAutoSavePerTick) { break; }
++            }
+         }
+-        MinecraftTimings.savePlayers.stopTiming(); // Paper
+-        return null; }); // Paper - ensure main
++        // MinecraftTimings.savePlayers.stopTiming(); // Paper // Volcano
++        // return null; }); // Paper - ensure main // Volcano
+     }
++    // Paper end
+ 
+     public WhiteList getWhitelist() {
+         return this.whitelist;
+diff --git a/src/main/java/net/minecraft/server/ServerConnection.java b/src/main/java/net/minecraft/server/ServerConnection.java
+index e7ed6af9c..fc5165f90 100644
+--- a/src/main/java/net/minecraft/server/ServerConnection.java
++++ b/src/main/java/net/minecraft/server/ServerConnection.java
+@@ -39,6 +39,7 @@ public class ServerConnection {
+     public volatile boolean c;
+     private final List<ChannelFuture> f = Collections.synchronizedList(Lists.newArrayList());
+     private final List<NetworkManager> g = Collections.synchronizedList(Lists.newArrayList());
++    public final List<NetworkManager> getNetworkManagers() { return this.g; } // Volcano
+     // Paper start - prevent blocking on adding a new network manager while the server is ticking
+     private final List<NetworkManager> pending = Collections.synchronizedList(Lists.<NetworkManager>newArrayList());
+     private void addPending() {
+diff --git a/src/main/java/net/minecraft/server/WorldServer.java b/src/main/java/net/minecraft/server/WorldServer.java
+index 1a01e5e69..1aad76ff7 100644
+--- a/src/main/java/net/minecraft/server/WorldServer.java
++++ b/src/main/java/net/minecraft/server/WorldServer.java
+@@ -121,7 +121,6 @@ public class WorldServer extends World {
+ 
+     public void doTick(BooleanSupplier booleansupplier) {
+         GameProfilerFiller gameprofilerfiller = this.getMethodProfiler();
+-
+         this.ticking = true;
+         gameprofilerfiller.enter("world border");
+         this.getWorldBorder().s();
+@@ -504,7 +503,31 @@ public class WorldServer extends World {
+ 
+             this.D = j > 0 && j >= this.players.size() - i;
+         }
++    }
++
++    public boolean everyoneDeeplySleeping() {
++        if (this.D && !this.isClientSide) {
++            Iterator iterator = this.players.iterator();
++
++            boolean foundActualSleepers = false;
++
++            EntityHuman entityHuman;
++
++            do {
++                if (!iterator.hasNext()) {
++                    return foundActualSleepers;
++                }
++
++                entityHuman = (EntityHuman) iterator.next();
+ 
++                if (entityHuman.isDeeplySleeping()) {
++                    foundActualSleepers = true;
++                }
++            } while (!entityHuman.isSpectator() || entityHuman.isDeeplySleeping() || entityHuman.fauxSleeping);
++            return false;
++        } else {
++            return false;
++        }
+     }
+ 
+     @Override
+@@ -512,7 +535,7 @@ public class WorldServer extends World {
+         return this.server.getScoreboard();
+     }
+ 
+-    private void clearWeather() {
++    public void clearWeather() { // Volcano - private -> public
+         // CraftBukkit start
+         this.worldData.setStorm(false);
+         // If we stop due to everyone sleeping we should reset the weather duration to some other random value.
+diff --git a/src/main/java/org/lavapowered/volcano/server/PacketType.java b/src/main/java/org/lavapowered/volcano/server/PacketType.java
+new file mode 100644
+index 000000000..affeb9bad
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/server/PacketType.java
+@@ -0,0 +1,10 @@
++package org.lavapowered.volcano.server;
++
++public enum PacketType {
++
++    PLAY_OUT_MAP_CHUNK,
++    PLAY_OUT_SPAWN_POSITION,
++    PLAY_OUT_CHAT,
++    UNKNOWN
++
++}
+diff --git a/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncExecutor.java b/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncExecutor.java
+new file mode 100644
+index 000000000..8a0485bfc
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncExecutor.java
+@@ -0,0 +1,62 @@
++package org.lavapowered.volcano.server;
++
++import co.aikar.timings.ThreadAssertion;
++import com.google.common.util.concurrent.ThreadFactoryBuilder;
++
++import java.util.concurrent.Callable;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
++import java.util.concurrent.Future;
++
++public class VolcanoAsyncExecutor {
++
++    private static final ExecutorService singleExecutor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("Volcano Single Async Executor Thread - %1$d").build());
++    private static final ExecutorService asyncExecutor = Executors.newFixedThreadPool(getNThreads(), new ThreadFactoryBuilder().setNameFormat("Volcano Async Executor Thread - %1$d").build());
++
++    private static int getNThreads() {
++        int processors = Runtime.getRuntime().availableProcessors() / 2;
++        if (processors < 2)
++            return 2;
++        if (processors > 8)
++            return 8;
++        return processors;
++    }
++
++    /**
++     * Posts a task to be executed asynchronously in a single thread
++     * @param run
++     */
++    public static void scheduleSingleAsyncTask(Runnable run) {
++        ThreadAssertion.close();
++        singleExecutor.execute(run);
++    }
++
++    /**
++     * Posts a task to be executed asynchronously
++     * @param run
++     */
++    public static void scheduleAsyncTask(Runnable run) {
++        ThreadAssertion.close();
++        asyncExecutor.execute(run);
++    }
++
++    /**
++     * Posts a task to be executed asynchronously in a single thread
++     * @param run
++     * @return
++     */
++    public static <V> Future<V> scheduleSingleAsyncTask(Callable<V> run) {
++        ThreadAssertion.close();
++        return singleExecutor.submit(run);
++    }
++
++    /**
++     * Posts a task to be executed asynchronously
++     * @param run
++     */
++    public static <V> Future<V> scheduleAsyncTask(Callable<V> run) {
++        ThreadAssertion.close();
++        return asyncExecutor.submit(run);
++    }
++
++}
+diff --git a/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncScheduler.java b/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncScheduler.java
+new file mode 100644
+index 000000000..6afa22182
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncScheduler.java
+@@ -0,0 +1,97 @@
++package org.lavapowered.volcano.server;
++
++import com.google.common.base.Predicate;
++import com.google.common.collect.Iterables;
++import net.minecraft.server.*;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++
++import javax.annotation.Nullable;
++import java.util.List;
++
++public class VolcanoAsyncScheduler extends Thread {
++
++    private final static Logger LOGGER = LogManager.getLogger("Volcano");
++    private final static int STD_TICK_TIME = 50;
++
++    public static VolcanoAsyncScheduler initialize() {
++        return Singleton.instance;
++    }
++
++    private static class Singleton {
++        private static final VolcanoAsyncScheduler instance;
++
++        static {
++            instance = new VolcanoAsyncScheduler();
++        }
++    }
++
++    private int playerListTick;
++
++    @Override
++    public void run() {
++        MinecraftServer server = MinecraftServer.getServer();
++
++        while (server.isRunning()) {
++            long currentLoop = System.currentTimeMillis();
++
++            // Send pending chunk packets
++            List<NetworkManager> networkManagers = server.getServerConnection().getNetworkManagers();
++            if (!networkManagers.isEmpty()) {
++                synchronized (networkManagers) {
++                    for (NetworkManager player : networkManagers) {
++                        player.sendPacketQueue();
++                    }
++                }
++            }
++
++            for (WorldServer world : server.getWorlds()) {
++                // Send time updates to everyone, it will get the right time from the world the player is in.
++                boolean doDaylight = world.getGameRules().getBoolean("doDaylightCycle");
++                long dayTime = world.getDayTime();
++                long worldTime = world.getTime();
++                final PacketPlayOutUpdateTime worldPacket = new PacketPlayOutUpdateTime(worldTime, dayTime, doDaylight);
++                for (EntityHuman entityHuman : world.players) {
++                    if (!(entityHuman instanceof EntityPlayer) || (server.currentTick() + entityHuman.getId()) % 20 != 0) {
++                        continue;
++                    }
++                    EntityPlayer entityPlayer = (EntityPlayer) entityHuman;
++                    long playerTime = entityPlayer.getPlayerTime();
++                    PacketPlayOutUpdateTime packet = (playerTime == dayTime) ? worldPacket : new PacketPlayOutUpdateTime(worldTime, playerTime, doDaylight);
++                    entityPlayer.playerConnection.sendPacket(packet); // Add support for per player time
++                }
++            }
++
++            // Send player latency update packets
++            if (++playerListTick > 600) {
++                List<EntityPlayer> players = server.getPlayerList().players;
++                for (EntityPlayer target : players) {
++                    target.playerConnection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.UPDATE_LATENCY, Iterables.filter(players, new Predicate<EntityPlayer>() {
++                        @Override
++                        public boolean apply(@Nullable EntityPlayer entityPlayer) {
++                            return target.getBukkitEntity().canSee(entityPlayer.getBukkitEntity());
++                        }
++                    })));
++                }
++                playerListTick = 0;
++            }
++
++            // Save players data
++            int playerSaveInterval = com.destroystokyo.paper.PaperConfig.playerAutoSaveRate;
++            if (playerSaveInterval < 0) {
++                playerSaveInterval = server.autosavePeriod;
++            }
++            if (playerSaveInterval > 0) {
++                server.getPlayerList().savePlayers(playerSaveInterval);
++            }
++
++            try {
++                long sleepFixed = STD_TICK_TIME - (System.currentTimeMillis() - currentLoop);
++                if (sleepFixed > 0) Thread.sleep(sleepFixed);
++            } catch (InterruptedException e) {
++                continue;
++            }
++        }
++    }
++
++}
+diff --git a/src/main/java/org/lavapowered/volcano/server/VolcanoCreatureSpawner.java b/src/main/java/org/lavapowered/volcano/server/VolcanoCreatureSpawner.java
+new file mode 100644
+index 000000000..cb734ad63
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/server/VolcanoCreatureSpawner.java
+@@ -0,0 +1,72 @@
++package org.lavapowered.volcano.server;
++
++import com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent;
++import com.google.common.collect.Maps;
++import net.minecraft.server.*;
++import org.bukkit.Bukkit;
++import org.bukkit.entity.Player;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.Map;
++
++public class VolcanoCreatureSpawner {
++
++    private static final Map<ChunkCoordIntPair, int[]> rangeChunks = Maps.newConcurrentMap();
++
++    public static void increment(ChunkCoordIntPair chunk, EnumCreatureType type) {
++        int[] values = rangeChunks.get(chunk);
++        if (values == null) {
++            values = new int[EnumCreatureType.values().length];
++            values[type.ordinal()]++;
++            rangeChunks.put(chunk, values);
++        } else {
++            values[type.ordinal()]++;
++        }
++    }
++
++    public static void decrement(ChunkCoordIntPair chunk, EnumCreatureType type) {
++        int[] values = rangeChunks.get(chunk);
++        if (values == null) {
++            values = new int[EnumCreatureType.values().length];
++            int count = values[type.ordinal()];
++            values[type.ordinal()] = count > 1 ? --count : 0;
++            rangeChunks.put(chunk, values);
++        } else {
++            int count = values[type.ordinal()];
++            values[type.ordinal()] = count > 1 ? --count : 0;
++        }
++    }
++
++    private static int getSpawnRange(WorldServer world, EntityHuman player) {
++        byte mobSpawnRange = world.spigotConfig.mobSpawnRange;
++        mobSpawnRange = (mobSpawnRange > world.spigotConfig.viewDistance) ? (byte) world.spigotConfig.viewDistance : mobSpawnRange;
++        mobSpawnRange = (mobSpawnRange > 8) ? 8 : mobSpawnRange;
++
++        if (PlayerNaturallySpawnCreaturesEvent.getHandlerList().getRegisteredListeners().length != 0) {
++            PlayerNaturallySpawnCreaturesEvent event = new PlayerNaturallySpawnCreaturesEvent((Player) player.getBukkitEntity(), mobSpawnRange);
++            // Prevent concurrent handling, at least
++            synchronized (PlayerNaturallySpawnCreaturesEvent.class) {
++                Bukkit.getPluginManager().callEvent(event);
++            }
++
++            return event.isCancelled() ? 0 : event.getSpawnRadius();
++        }
++
++        return mobSpawnRange;
++    }
++
++    private static int getCreatureLimit(WorldServer world, EnumCreatureType type) {
++        switch (type) {
++            case MONSTER:
++                return world.getWorld().getMonsterSpawnLimit();
++            case CREATURE:
++                return world.getWorld().getAnimalSpawnLimit();
++            case WATER_CREATURE:
++                return world.getWorld().getWaterAnimalSpawnLimit();
++            case AMBIENT:
++                return world.getWorld().getAmbientSpawnLimit();
++        }
++        return type.spawnLimit();
++    }
++
++}
+diff --git a/src/main/java/org/lavapowered/volcano/server/VolcanoWorldAccessor.java b/src/main/java/org/lavapowered/volcano/server/VolcanoWorldAccessor.java
+new file mode 100644
+index 000000000..3f6e61763
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/server/VolcanoWorldAccessor.java
+@@ -0,0 +1,4 @@
++package org.lavapowered.volcano.server;
++
++public class VolcanoWorldAccessor {
++}
+diff --git a/src/main/java/org/lavapowered/volcano/util/ChunkCoordOrdinalInt3Tuple.java b/src/main/java/org/lavapowered/volcano/util/ChunkCoordOrdinalInt3Tuple.java
+new file mode 100644
+index 000000000..8491f560e
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/util/ChunkCoordOrdinalInt3Tuple.java
+@@ -0,0 +1,39 @@
++package org.lavapowered.volcano.util;
++
++import com.google.common.hash.HashFunction;
++import com.google.common.hash.Hashing;
++import net.minecraft.server.ChunkCoordIntPair;
++
++public class ChunkCoordOrdinalInt3Tuple extends ChunkCoordIntPair {
++
++    public static final HashFunction hashFunc = Hashing.murmur3_32("volcano".hashCode());
++    public final int ordinal, cachedHashCode;
++
++    public ChunkCoordOrdinalInt3Tuple(int x, int z, int ord) {
++        super(x, z);
++        this.ordinal = ord;
++        cachedHashCode = hashFunc.newHasher()
++                .putInt(ordinal)
++                .putInt(x)
++                .putInt(z)
++                .hash().asInt();
++    }
++
++    @Override
++    public int hashCode() {
++        return cachedHashCode;
++    }
++
++    @Override
++    public boolean equals(Object object) {
++        if (this == object) {
++            return true;
++        } else if (!(object instanceof ChunkCoordOrdinalInt3Tuple)) {
++            return false;
++        } else {
++            ChunkCoordOrdinalInt3Tuple pair = (ChunkCoordOrdinalInt3Tuple) object;
++
++            return this.x == pair.x && this.z == pair.z && this.ordinal == pair.ordinal;
++        }
++    }
++}
+diff --git a/src/main/java/org/lavapowered/volcano/util/CopyOnWriteHashMap.java b/src/main/java/org/lavapowered/volcano/util/CopyOnWriteHashMap.java
+new file mode 100644
+index 000000000..6dfd177cf
+--- /dev/null
++++ b/src/main/java/org/lavapowered/volcano/util/CopyOnWriteHashMap.java
+@@ -0,0 +1,182 @@
++package org.lavapowered.volcano.util;
++
++import org.jetbrains.annotations.NotNull;
++
++import java.io.Serializable;
++import java.util.*;
++import java.util.concurrent.atomic.AtomicReference;
++
++/**
++ * A thread-safe version of {@link Map} in which all operations that change the
++ * Map are implemented by making a new copy of the underlying Map.
++ * <p/>
++ * While the creation of a new Map can be expensive, this class is designed for
++ * cases in which the primary function is to read data from the Map, not to
++ * modify the Map.  Therefore the operations that do not cause a change to this
++ * class happen quickly and concurrently.
++ *
++ * @author <a href="mailto:Kuzma.Deretuke@gmail.com">Kuzma Deretuke</a>
++ */
++public class CopyOnWriteHashMap<K, V> implements Map<K, V>, Serializable, Cloneable {
++
++    private AtomicReference<Map<K, V>> internalMap = new AtomicReference<>();
++
++    /**
++     * Creates a new instance of CopyOnWriteHashMap.
++     */
++    public CopyOnWriteHashMap() {
++        internalMap.set(new HashMap<>());
++    }
++
++    /**
++     * Creates a new instance of CopyOnWriteHashMap with the specified initial size
++     *
++     * @param cap The initial size of the Map
++     */
++    public CopyOnWriteHashMap(int cap) {
++        internalMap.set(new HashMap<>(cap));
++    }
++
++    /**
++     * Creates a new instance of CopyOnWriteHashMap in which the initial data,
++     * being held by this map, is contained in the supplied map.
++     *
++     * @param data A Map containing the initial contents to be placed into this class
++     */
++    public CopyOnWriteHashMap(Map<K, V> data) {
++        internalMap.set(new HashMap<>(data));
++    }
++
++    @Override
++    public V put(K key, V value) {
++        Map<K, V> oldMap, newMap;
++        V val;
++        do {
++            oldMap = internalMap.get();
++            newMap = new HashMap<>(oldMap);
++            val = newMap.put(key, value);
++        }
++        while (!internalMap.compareAndSet(oldMap, newMap));
++        return val;
++    }
++
++    @Override
++    public V remove(Object key) {
++        Map<K, V> oldMap, newMap;
++        V val;
++        do {
++            oldMap = internalMap.get();
++            newMap = new HashMap<>(oldMap);
++            val = newMap.remove(key);
++        }
++        while (!internalMap.compareAndSet(oldMap, newMap));
++        return val;
++    }
++
++    @Override
++    public void putAll(Map<? extends K, ? extends V> newData) {
++        Map<K, V> newMap, oldMap;
++        do {
++            oldMap = internalMap.get();
++            newMap = new HashMap<>(oldMap);
++            newMap.putAll(newData);
++        }
++        while (!internalMap.compareAndSet(oldMap, newMap));
++    }
++
++    @Override
++    public void clear() {
++        internalMap.set(new HashMap<>());
++    }
++
++    /*
++     * Below are methods that don't modify the internalMap
++     */
++
++    @Override
++    public int size() {
++        return internalMap.get().size();
++    }
++
++    @Override
++    public boolean isEmpty() {
++        return internalMap.get().isEmpty();
++    }
++
++    @Override
++    public boolean containsKey(Object key) {
++        return internalMap.get().containsKey(key);
++    }
++
++    @Override
++    public boolean containsValue(Object value) {
++        return internalMap.get().containsValue(value);
++    }
++
++    @Override
++    public V get(Object key) {
++        return internalMap.get().get(key);
++    }
++
++    @Override
++    @NotNull
++    public Set<K> keySet() {
++        return internalMap.get().keySet();
++    }
++
++    @Override
++    @NotNull
++    public Collection<V> values() {
++        return internalMap.get().values();
++    }
++
++    @Override
++    @NotNull
++    public Set<Entry<K, V>> entrySet() {
++        return internalMap.get().entrySet();
++    }
++
++    @Override
++    public int hashCode() {
++        return internalMap.get().hashCode();
++    }
++
++    @Override
++    public boolean equals(Object o) {
++        return internalMap.get().equals(o);
++    }
++
++    @Override
++    public String toString() {
++        Map<K, V> map = internalMap.get();
++        Iterator<Entry<K, V>> i = map.entrySet().iterator();
++        if (!i.hasNext()) {
++            return "{}";
++        }
++        StringBuilder sb = new StringBuilder();
++        sb.append('{');
++        for (;;) {
++            Entry<K, V> e = i.next();
++            K key = e.getKey();
++            V value = e.getValue();
++            sb.append(key == this ? "(this Map)" : (key == map ? "(internal Map)" : key.toString()));
++            sb.append('=');
++            sb.append(value == this ? "(this Map)" : (value == map ? "(internal Map)" : value.toString()));
++            if (!i.hasNext())
++                return sb.append('}').toString();
++            sb.append(',').append(' ');
++        }
++    }
++
++    @Override
++    public Object clone() {
++        try {
++            CopyOnWriteHashMap<K, V> clone = (CopyOnWriteHashMap<K, V>) super.clone();
++            clone.internalMap = new AtomicReference<>(new HashMap<>(internalMap.get()));
++            return clone;
++        } catch (CloneNotSupportedException e) {
++            throw new InternalError();
++        }
++    }
++
++}
+-- 
+2.22.0.rc0
+
