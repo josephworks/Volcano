@@ -1,11 +1,11 @@
-From a32e206e84844855925937c6b465865f0a9783b3 Mon Sep 17 00:00:00 2001
+From 95dd0a483e94cf0b99916bb9985f0a57cc8be83b Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Tue, 14 May 2019 21:28:10 -0400
 Subject: [PATCH] POM Changes
 
 
 diff --git a/pom.xml b/pom.xml
-index dbbb5c72..ab870881 100644
+index dbbb5c72..27c90017 100644
 --- a/pom.xml
 +++ b/pom.xml
 @@ -1,20 +1,19 @@
@@ -24,8 +24,9 @@ index dbbb5c72..ab870881 100644
  
 -    <groupId>com.destroystokyo.paper</groupId>
 -    <artifactId>paper-api</artifactId>
+-    <version>1.14.1-R0.1-SNAPSHOT</version>
 +    <artifactId>volcano-api</artifactId>
-     <version>1.14.1-R0.1-SNAPSHOT</version>
++    <version>1.14.2-R0.1-SNAPSHOT</version>
      <packaging>jar</packaging>
  
 -    <name>Paper-API</name>
@@ -45,5 +46,5 @@ index dbbb5c72..ab870881 100644
              <scope>compile</scope>
          </dependency>
 -- 
-2.22.0.rc0
+2.22.0.rc1.257.g3120a18244
 

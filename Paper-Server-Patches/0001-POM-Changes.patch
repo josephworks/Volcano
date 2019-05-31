@@ -1,28 +1,36 @@
-From 552844005d4120377adbf659f75a676df472ffd7 Mon Sep 17 00:00:00 2001
+From 6a95387925a884ffd91a8c9e17ea8cba2c78ae19 Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Tue, 14 May 2019 21:48:10 -0400
 Subject: [PATCH] POM Changes
 
 
 diff --git a/pom.xml b/pom.xml
-index e01d95f1..9110c996 100644
+index e01d95f1..f03b9d3b 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -1,11 +1,11 @@
+@@ -1,17 +1,17 @@
  <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
      <modelVersion>4.0.0</modelVersion>
 -    <artifactId>paper</artifactId>
 +    <artifactId>volcano</artifactId>
      <packaging>jar</packaging>
-     <version>1.14.1-R0.1-SNAPSHOT</version>
+-    <version>1.14.1-R0.1-SNAPSHOT</version>
 -    <name>Paper</name>
 -    <url>https://papermc.io</url>
++    <version>1.14.2-R0.1-SNAPSHOT</version>
 +    <name>Volcano</name>
 +    <url>https://github.com/LavaPowered/Volcano</url>
  
      <properties>
          <!-- <skipTests>true</skipTests> Paper - This [was] not going to end well -->
+         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+         <api.version>unknown</api.version>
+-        <minecraft.version>1.14.1</minecraft.version>
++        <minecraft.version>1.14.2</minecraft.version>
+         <minecraft_version>1_14_R1</minecraft_version>
+         <buildtag.prefix>git-Bukkit-</buildtag.prefix>
+         <buildtag.suffix></buildtag.suffix>
 @@ -21,16 +21,16 @@
      </properties>
  
@@ -163,5 +171,5 @@ index e01d95f1..9110c996 100644
                  </configuration>
                  <executions>
 -- 
-2.22.0.rc0
+2.22.0.rc1.257.g3120a18244
 

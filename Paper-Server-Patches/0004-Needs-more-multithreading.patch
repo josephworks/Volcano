@@ -1,11 +1,11 @@
-From b8ae5a7815e39b27e51924a79200199537da1464 Mon Sep 17 00:00:00 2001
+From fdb5942df536116d1deaca9ab69044935b242cfd Mon Sep 17 00:00:00 2001
 From: GMatrixGames <gmatrixgames@hotmail.com>
 Date: Fri, 17 May 2019 19:28:32 -0400
 Subject: [PATCH] Needs more multithreading
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/PaperConfig.java b/src/main/java/com/destroystokyo/paper/PaperConfig.java
-index 8942a06bf..9ff34118a 100644
+index 8942a06b..9ff34118 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperConfig.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperConfig.java
 @@ -267,6 +267,17 @@ public class PaperConfig {
@@ -27,7 +27,7 @@ index 8942a06bf..9ff34118a 100644
      private static void suggestPlayersWhenNull() {
          suggestPlayersWhenNullTabCompletions = getBoolean("settings.suggest-player-names-when-null-tab-completions", suggestPlayersWhenNullTabCompletions);
 diff --git a/src/main/java/net/minecraft/server/AdvancementDataPlayer.java b/src/main/java/net/minecraft/server/AdvancementDataPlayer.java
-index 593979152..067073fbc 100644
+index 59397915..067073fb 100644
 --- a/src/main/java/net/minecraft/server/AdvancementDataPlayer.java
 +++ b/src/main/java/net/minecraft/server/AdvancementDataPlayer.java
 @@ -12,6 +12,7 @@ import com.google.gson.JsonParseException;
@@ -75,7 +75,7 @@ index 593979152..067073fbc 100644
          if (org.spigotmc.SpigotConfig.disableAdvancementSaving) return;
          Map<MinecraftKey, AdvancementProgress> map = Maps.newHashMap();
 diff --git a/src/main/java/net/minecraft/server/EntityPlayer.java b/src/main/java/net/minecraft/server/EntityPlayer.java
-index e9f158d8e..3574b9a39 100644
+index e9f158d8..3574b9a3 100644
 --- a/src/main/java/net/minecraft/server/EntityPlayer.java
 +++ b/src/main/java/net/minecraft/server/EntityPlayer.java
 @@ -40,6 +40,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
@@ -88,7 +88,7 @@ index e9f158d8e..3574b9a39 100644
      public final PlayerInteractManager playerInteractManager;
 diff --git a/src/main/java/net/minecraft/server/EnumCreatureType.java b/src/main/java/net/minecraft/server/EnumCreatureType.java
 new file mode 100644
-index 000000000..f21c62a65
+index 00000000..f21c62a6
 --- /dev/null
 +++ b/src/main/java/net/minecraft/server/EnumCreatureType.java
 @@ -0,0 +1,44 @@
@@ -137,7 +137,7 @@ index 000000000..f21c62a65
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 73ac45bf7..a87f0a7b0 100644
+index 73ac45bf..a87f0a7b 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -83,7 +83,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
@@ -150,7 +150,7 @@ index 73ac45bf7..a87f0a7b0 100644
      private boolean onlineMode;
      private boolean A;
 diff --git a/src/main/java/net/minecraft/server/NetworkManager.java b/src/main/java/net/minecraft/server/NetworkManager.java
-index 4766f7b77..d95b7b9c5 100644
+index 4766f7b7..d95b7b9c 100644
 --- a/src/main/java/net/minecraft/server/NetworkManager.java
 +++ b/src/main/java/net/minecraft/server/NetworkManager.java
 @@ -231,7 +231,7 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet<?>> {
@@ -163,7 +163,7 @@ index 4766f7b77..d95b7b9c5 100644
          if (this.channel != null && this.channel.isOpen()) {
              this.j.readLock().lock();
 diff --git a/src/main/java/net/minecraft/server/PlayerList.java b/src/main/java/net/minecraft/server/PlayerList.java
-index 0e7e47f83..36f5b99ed 100644
+index 0e7e47f8..36f5b99e 100644
 --- a/src/main/java/net/minecraft/server/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/PlayerList.java
 @@ -39,6 +39,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
@@ -253,7 +253,7 @@ index 0e7e47f83..36f5b99ed 100644
      public WhiteList getWhitelist() {
          return this.whitelist;
 diff --git a/src/main/java/net/minecraft/server/ServerConnection.java b/src/main/java/net/minecraft/server/ServerConnection.java
-index e7ed6af9c..fc5165f90 100644
+index e7ed6af9..fc5165f9 100644
 --- a/src/main/java/net/minecraft/server/ServerConnection.java
 +++ b/src/main/java/net/minecraft/server/ServerConnection.java
 @@ -39,6 +39,7 @@ public class ServerConnection {
@@ -265,10 +265,10 @@ index e7ed6af9c..fc5165f90 100644
      private final List<NetworkManager> pending = Collections.synchronizedList(Lists.<NetworkManager>newArrayList());
      private void addPending() {
 diff --git a/src/main/java/net/minecraft/server/WorldServer.java b/src/main/java/net/minecraft/server/WorldServer.java
-index 1a01e5e69..1aad76ff7 100644
+index 3ed12672..8d267857 100644
 --- a/src/main/java/net/minecraft/server/WorldServer.java
 +++ b/src/main/java/net/minecraft/server/WorldServer.java
-@@ -121,7 +121,6 @@ public class WorldServer extends World {
+@@ -123,7 +123,6 @@ public class WorldServer extends World {
  
      public void doTick(BooleanSupplier booleansupplier) {
          GameProfilerFiller gameprofilerfiller = this.getMethodProfiler();
@@ -276,7 +276,7 @@ index 1a01e5e69..1aad76ff7 100644
          this.ticking = true;
          gameprofilerfiller.enter("world border");
          this.getWorldBorder().s();
-@@ -504,7 +503,31 @@ public class WorldServer extends World {
+@@ -506,7 +505,31 @@ public class WorldServer extends World {
  
              this.D = j > 0 && j >= this.players.size() - i;
          }
@@ -308,7 +308,7 @@ index 1a01e5e69..1aad76ff7 100644
      }
  
      @Override
-@@ -512,7 +535,7 @@ public class WorldServer extends World {
+@@ -514,7 +537,7 @@ public class WorldServer extends World {
          return this.server.getScoreboard();
      }
  
@@ -319,7 +319,7 @@ index 1a01e5e69..1aad76ff7 100644
          // If we stop due to everyone sleeping we should reset the weather duration to some other random value.
 diff --git a/src/main/java/org/lavapowered/volcano/server/PacketType.java b/src/main/java/org/lavapowered/volcano/server/PacketType.java
 new file mode 100644
-index 000000000..affeb9bad
+index 00000000..affeb9ba
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/server/PacketType.java
 @@ -0,0 +1,10 @@
@@ -335,7 +335,7 @@ index 000000000..affeb9bad
 +}
 diff --git a/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncExecutor.java b/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncExecutor.java
 new file mode 100644
-index 000000000..8a0485bfc
+index 00000000..8a0485bf
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncExecutor.java
 @@ -0,0 +1,62 @@
@@ -403,7 +403,7 @@ index 000000000..8a0485bfc
 +}
 diff --git a/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncScheduler.java b/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncScheduler.java
 new file mode 100644
-index 000000000..6afa22182
+index 00000000..6afa2218
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/server/VolcanoAsyncScheduler.java
 @@ -0,0 +1,97 @@
@@ -506,7 +506,7 @@ index 000000000..6afa22182
 +}
 diff --git a/src/main/java/org/lavapowered/volcano/server/VolcanoCreatureSpawner.java b/src/main/java/org/lavapowered/volcano/server/VolcanoCreatureSpawner.java
 new file mode 100644
-index 000000000..cb734ad63
+index 00000000..cb734ad6
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/server/VolcanoCreatureSpawner.java
 @@ -0,0 +1,72 @@
@@ -584,7 +584,7 @@ index 000000000..cb734ad63
 +}
 diff --git a/src/main/java/org/lavapowered/volcano/server/VolcanoWorldAccessor.java b/src/main/java/org/lavapowered/volcano/server/VolcanoWorldAccessor.java
 new file mode 100644
-index 000000000..3f6e61763
+index 00000000..3f6e6176
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/server/VolcanoWorldAccessor.java
 @@ -0,0 +1,4 @@
@@ -594,7 +594,7 @@ index 000000000..3f6e61763
 +}
 diff --git a/src/main/java/org/lavapowered/volcano/util/ChunkCoordOrdinalInt3Tuple.java b/src/main/java/org/lavapowered/volcano/util/ChunkCoordOrdinalInt3Tuple.java
 new file mode 100644
-index 000000000..8491f560e
+index 00000000..8491f560
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/util/ChunkCoordOrdinalInt3Tuple.java
 @@ -0,0 +1,39 @@
@@ -639,7 +639,7 @@ index 000000000..8491f560e
 +}
 diff --git a/src/main/java/org/lavapowered/volcano/util/CopyOnWriteHashMap.java b/src/main/java/org/lavapowered/volcano/util/CopyOnWriteHashMap.java
 new file mode 100644
-index 000000000..6dfd177cf
+index 00000000..6dfd177c
 --- /dev/null
 +++ b/src/main/java/org/lavapowered/volcano/util/CopyOnWriteHashMap.java
 @@ -0,0 +1,182 @@
@@ -826,5 +826,5 @@ index 000000000..6dfd177cf
 +
 +}
 -- 
-2.22.0.rc0
+2.22.0.rc1.257.g3120a18244
 
